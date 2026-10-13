@@ -1,8 +1,0 @@
-# Dépendances de départ, à adapter selon vos choix techniques
-numpy
-pandas
-sentence-transformers
-faiss-cpu
-pypdf
-python-dotenv
-pytest
