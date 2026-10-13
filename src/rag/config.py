@@ -62,7 +62,7 @@ PRICING_PER_MTOK: dict[str, tuple[float, float]] = {
 class Settings:
     # Corpus
     corpus_url: str = field(default_factory=lambda: _env(
-        "CORPUS_URL", "https://lecomarquage.service-public.fr/vdd/3.4/part/zip/vosdroits-latest.zip"))
+        "CORPUS_URL", "https://lecomarquage.service-public.fr/vdd/3.5/part/zip/vosdroits-latest.zip"))
     themes: list[str] = field(default_factory=lambda: list(DEFAULT_THEMES))
     max_docs: int = field(default_factory=lambda: _env_int("MAX_DOCS", 500))
 

@@ -21,8 +21,8 @@ def _split_long_paragraph(par: str, max_words: int) -> list[str]:
 def split_section(text: str, max_words: int, overlap_words: int) -> list[str]:
     paragraphs: list[str] = []
     for p in text.split("\n"):
-        p = p.strip()
-        if not p:
+        p = p.rstrip()
+        if not p.strip():
             continue
         paragraphs.extend(_split_long_paragraph(p, max_words) if len(p.split()) > max_words else [p])
 

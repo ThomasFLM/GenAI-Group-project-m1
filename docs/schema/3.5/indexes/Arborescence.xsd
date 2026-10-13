@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:import namespace="http://purl.org/dc/elements/1.1/" schemaLocation="../librairie/simpledc.xsd"/>
+	<xs:include schemaLocation="../librairie/commun.xsd"/>
+	<xs:group name="itemsArborescence">
+		<xs:annotation>
+			<xs:documentation>Groupe contenant des éléments d'édition</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:choice maxOccurs="unbounded">
+				<xs:element name="ItemArbo">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="Titre" minOccurs="0" maxOccurs="1" type="xs:string"/>
+							<xs:group ref="itemsArborescence" minOccurs="0" maxOccurs="unbounded"/>
+						</xs:sequence>
+						<!-- @type : type de l'élément pointé
+								valeurs possibles Publication : [Accueil Comment faire si|Fiche Comment faire si|Fiche Comment faire si conditionné|Dossier|Fiche d'information|Fiche avec liens externes|Fiche Question-réponse|Fiche Question-réponse conditionnée|Sous-dossier|Sous-theme|Theme|Fiche redirigée|Dossier redirigé
+								valeurs possibles ServicesComplémentaires : @see ServiceComplementaire.xsd/@type
+						-->
+						<xs:attribute name="type" type="xs:string" use="required"/>
+						<!-- @ID : id de l'élément pointé -->
+						<xs:attribute name="ID" type="xs:string" use="required"/>
+						<!-- @fichier : Donne lieu à la création d'un fichier XML dédié -->
+						<xs:attribute name="fichier" type="xs:boolean" use="required"/>
+						<!-- @dateDeModification : date de dernier enregistrement de l'élément -->
+						<xs:attribute name="dateDeModification" type="xs:dateTime" use="required"/>
+						<!-- @audience : audience dans laquelle retrouver le fichier XML correspondant
+								Remarque : cet attribut n'a de sens que si @fichier='false'
+						 -->
+						<xs:attribute name="audience" type="xs:string" use="optional"/>
+					</xs:complexType>
+				</xs:element>
+			</xs:choice>
+		</xs:sequence>
+	</xs:group>
+	
+	<xs:element name="Arborescence">
+		<xs:annotation>
+			<xs:documentation>Schéma permettant de modéliser l'arborescence des fiches, noeuds et ressources de l'audience</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="dc:date"/>
+				<xs:element ref="Audience" minOccurs="0" maxOccurs="unbounded"/>
+				<xs:group ref="itemsArborescence" minOccurs="0" maxOccurs="unbounded"/>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>

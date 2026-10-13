@@ -49,3 +49,23 @@ def test_split_section_sizes():
     assert all(len(p.split()) <= 80 + 10 + 32 for p in pieces)
     # recouvrement : la fin d'un passage est reprise au début du suivant
     assert pieces[0].split()[-3:] == pieces[1].split()[:3]
+
+
+def test_schema_35_table_condition_nested_list(docs):
+    d = next(x for x in docs if x.doc_id == "F0003")
+    text = d.text
+    # tableau linéarisé avec les en-têtes de colonnes (élément <Rangée>)
+    assert "Demandeur : Majeur ; Prix : 86 €" in text
+    assert "Demandeur : Mineur de 15 ans et plus ; Prix : 42 €" in text
+    assert "Tarif selon l'âge" in text
+    # liste imbriquée conservée, service en ligne, condition et titre alternatif ignorés
+    assert "- Achat en ligne\n  - sur le site de l'ANTS" in text
+    assert "Acheter un timbre" not in text and "majeur\"" not in text
+    assert "Combien ça coûte" not in text
+    assert any(s["heading"] == "Prix du timbre fiscal > Exemple" for s in d.sections)
+    # date de secours : attribut dateDerniereModificationImportante
+    assert d.date == "2025-03-01"
+
+
+def test_redirected_fiche_skipped(docs):
+    assert "F0004" not in {d.doc_id for d in docs}

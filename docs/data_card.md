@@ -9,7 +9,7 @@
 |---|---|
 | Jeu de données | « Fiches pratiques et ressources de Service-Public.fr Particuliers » (data.gouv.fr) |
 | Producteur | DILA — Direction de l'information légale et administrative |
-| Format | archive ZIP de fichiers XML (`vosdroits-latest.zip`), une fiche par fichier |
+| Format | archive ZIP de fichiers XML (`vosdroits-latest.zip`), une fiche par fichier, conformes au schéma XSD 3.5 (copie dans `docs/schema/3.5/`, élément racine `Publication`) |
 | Licence | Licence Ouverte / Open Licence 2.0 (Etalab) — à vérifier sur la page du jeu |
 | Date de téléchargement | À REMPLIR |
 | Alternative | export « vectorisé » de la DINUM (Parquet, Hugging Face) : chargeable via `build-corpus --source fichier.parquet`. Seul le texte est utilisé ; nos propres découpage et embeddings ; leurs embeddings peuvent servir de baseline. |

@@ -1,0 +1,337 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:import namespace="http://purl.org/dc/elements/1.1/" schemaLocation="simpledc.xsd"/>
+	<xs:include schemaLocation="commun.xsd"/>
+	
+<!-- ###
+	   # Elément constitutifs de la Publication
+	   ### -->
+			
+	<!-- SousThemePere -->
+	<xs:element name="SousThemePere">
+		<xs:complexType mixed="true">
+			<xs:attribute name="ID" type="xs:string" use="required"/>
+		</xs:complexType>
+	</xs:element>
+	
+	<!-- DossierPere -->
+	<xs:element name="DossierPere">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="Titre" type="xs:string"/>
+				<xs:element name="SousDossier" minOccurs="0" maxOccurs="unbounded">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="Titre" type="xs:string"/>
+							<xs:element name="Fiche" minOccurs="0" maxOccurs="unbounded">
+								<xs:complexType mixed="true">
+									<xs:attribute name="ID" type="xs:string" use="required"/>
+								</xs:complexType>
+							</xs:element>
+						</xs:sequence>
+						<xs:attribute name="ID" type="xs:string" use="required"/>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="Fiche" minOccurs="0" maxOccurs="unbounded">
+					<xs:complexType mixed="true">
+						<xs:attribute name="ID" type="xs:string" use="required"/>
+					</xs:complexType>
+				</xs:element>
+			</xs:sequence>
+			<xs:attribute name="ID" type="xs:string" use="required"/>
+		</xs:complexType>
+	</xs:element>
+	
+	
+	<!-- DossierPere -->
+	<xs:element name="RechercheGuideePere">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="Titre" type="xs:string"/>
+			</xs:sequence>
+			<xs:attribute name="ID" type="xs:string" use="required"/>
+			<xs:attribute name="audience" type="xs:string" use="optional"/>
+		</xs:complexType>
+	</xs:element>
+
+	<!-- SousTheme -->
+	<xs:element name="SousTheme">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="Titre" type="xs:string"/>
+				<xs:element name="Dossier" minOccurs="0" maxOccurs="unbounded">
+					<xs:complexType mixed="true">
+						<xs:attribute name="ID" type="xs:string" use="required"/>
+					</xs:complexType>
+				</xs:element>
+			</xs:sequence>
+			<xs:attribute name="ID" type="xs:string" use="required"/>
+		</xs:complexType>
+	</xs:element>
+	
+	<!-- SousDossier -->
+	<xs:element name="SousDossier">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="Titre" type="xs:string"/>
+				<xs:element name="Fiche" minOccurs="0" maxOccurs="unbounded">
+					<xs:complexType mixed="true">
+						<xs:attribute name="ID" type="xs:string" use="required"/>
+					</xs:complexType>
+				</xs:element>
+			</xs:sequence>
+			<xs:attribute name="ID" type="xs:string" use="required"/>
+		</xs:complexType>
+	</xs:element>
+
+	<!-- FichePrecedente -->
+	<xs:element name="FichePrecedente">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="Titre" type="xs:string"/>
+			</xs:sequence>
+			<xs:attribute name="ID" type="xs:string" use="required"/>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="FicheSuivante">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="Titre" type="xs:string"/>
+			</xs:sequence>
+			<xs:attribute name="ID" type="xs:string" use="required"/>
+		</xs:complexType>
+	</xs:element>
+
+	<!-- Fiche -->
+	<xs:element name="Fiche">
+		<xs:complexType mixed="true">
+			<xs:attribute name="ID" type="xs:string" use="required"/>
+		</xs:complexType>
+	</xs:element>
+	
+	<!-- LienExterneCommente -->
+	<xs:element name="LienExterneCommente">
+		<xs:complexType>
+			<xs:annotation>
+				<xs:documentation>Lien externe commenté</xs:documentation>
+			</xs:annotation>
+			<xs:sequence>
+				<xs:element name="Commentaire" minOccurs="0">
+					<xs:complexType>
+						<xs:group ref="GroupeContenu"/>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="LienExterne" type="TypeLienExterne"/>
+				<xs:element name="Source" minOccurs="0">
+					<xs:complexType mixed="true">
+						<xs:attribute name="ID" type="xs:string" use="required"/>
+					</xs:complexType>
+				</xs:element>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	
+	<!-- Partenaire -->
+	<xs:element name="Partenaire">
+		<xs:complexType mixed="true">
+			<xs:attribute name="ID" type="xs:string" use="required"/>
+			<xs:attribute name="URL" type="xs:string" use="required"/>
+			<xs:attribute name="langue" type="xs:string" use="optional"/><!-- code ISO639 ou RFC1766 -->
+			<xs:attribute name="commentaireLien" type="xs:string" use="optional"/>
+		</xs:complexType>
+	</xs:element>
+	
+	<!-- ListeSituations -->
+	<xs:element name="ListeSituations">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="Situation" minOccurs="0" maxOccurs="unbounded">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="Titre" type="xs:string"/>
+							<xs:element ref="Condition" minOccurs="0" maxOccurs="1"/>
+							<xs:element ref="Introduction" minOccurs="0"/>
+							<xs:element ref="Texte" minOccurs="0"/>
+							<xs:element name="Conclusion" minOccurs="0" type="ConclusionSimple"/>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="Conclusion" minOccurs="0" type="ConclusionSimple"/>
+			</xs:sequence>
+			<xs:attribute name="affichage" type="xs:string" use="required"/><!-- onglet,sequentiel -->
+		</xs:complexType>
+	</xs:element>
+		
+	<!-- Groupe
+		 utilisé dans les pages d'accueil des audiences
+	-->
+	<xs:element name="Groupe"> 
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="Titre" minOccurs="0" maxOccurs="1" type="xs:string"/>
+				<xs:element name="LienExterne" minOccurs="0" maxOccurs="1" type="TypeLienExterne"/>
+				<xs:choice>
+					<xs:element ref="ServiceEnLigne" minOccurs="0" maxOccurs="unbounded"/>
+					<xs:element ref="QuestionReponse" minOccurs="0" maxOccurs="unbounded"/>
+					<xs:element ref="CommentFaireSi" minOccurs="0" maxOccurs="unbounded"/>
+					<xs:element name="Fiche" minOccurs="0" maxOccurs="unbounded">
+						<xs:complexType>
+							<xs:sequence>
+								<xs:element name="Titre" type="xs:string"/>
+								<xs:element name="Dossier" minOccurs="0">
+									<xs:complexType mixed="true">
+										<xs:attribute name="ID" type="xs:string" use="required"/>
+									</xs:complexType>
+								</xs:element>
+							</xs:sequence>
+							<xs:attribute name="ID" type="xs:string" use="required"/>
+							<xs:attribute name="audience" type="xs:string" use="optional"/>
+							<xs:attribute name="type" type="xs:string" use="optional"/>
+						</xs:complexType>
+					</xs:element>
+					<xs:element name="Description" minOccurs="0" maxOccurs="1">
+						<xs:complexType>
+							<xs:group ref="GroupeContenu"/>
+						</xs:complexType>
+					</xs:element>
+				</xs:choice>
+			</xs:sequence>
+			<xs:attribute name="type" type="xs:string" use="optional"/>
+			<xs:attribute name="pictogramme" type="xs:string" use="optional"/>
+		</xs:complexType>
+	</xs:element>
+	
+	<!-- QuestionReponse -->
+	<xs:element name="QuestionReponse">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="Condition" minOccurs="0"/>
+				<xs:element name="Titre" type="xs:string"/>
+			</xs:sequence>
+			<xs:attribute name="ID" type="xs:string" use="required"/>
+			<xs:attribute name="audience" type="xs:string" use="optional"/>
+		</xs:complexType>
+	</xs:element>
+	
+	<!-- Problematique -->
+	<xs:element name="Problematiques">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="Accueil" minOccurs="0">
+					<xs:complexType>
+						<xs:group ref="GroupeContenu"/>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="Problematique" type="TypeProblematiqueBranche" minOccurs="1" maxOccurs="unbounded"/>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	<xs:complexType name="TypeProblematiqueBranche">
+		<xs:sequence>
+			<xs:element name="Titre" type="TypeTitreRiche" minOccurs="0"/>
+			<xs:element name="TitreChoix" type="TypeTitreRiche" minOccurs="0"/>
+			<xs:element name="Aide" minOccurs="0">
+				<xs:complexType>
+					<xs:sequence maxOccurs="unbounded">
+						<xs:group ref="GroupeContenusStructures"/>
+					</xs:sequence>
+				</xs:complexType>
+			</xs:element>
+			<xs:element name="SiSelectionne" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Variables à affecter si le choix est sélectionné</xs:documentation>
+				</xs:annotation>
+				<xs:complexType>
+					<xs:sequence> 
+						<xs:choice maxOccurs="unbounded">
+							<xs:element name="affecteVrai">
+								<xs:complexType>
+									<xs:attribute name="var" type="xs:string" use="required"/>
+								</xs:complexType>
+							</xs:element>
+						</xs:choice>
+					</xs:sequence>
+				</xs:complexType>
+			</xs:element>
+			<xs:choice minOccurs="0">
+				<xs:element name="Branche" type="TypeProblematiqueBranche" maxOccurs="unbounded"/>
+				<xs:element name="LienInterne" type="TypeLienInterne"/>
+			</xs:choice>
+		</xs:sequence>
+	</xs:complexType>
+	
+	<!-- Questionnaire -->
+	<xs:element name="Questionnaire">
+		<xs:complexType>
+			<xs:sequence> 
+				<!-- <xs:element name="Titre" type="TypeTitreRiche" minOccurs="0"/> -->
+				<xs:element name="Description" type="TypeTitreRiche" minOccurs="0"/>
+				<xs:element ref="IntroductionSimple" minOccurs="0"/>
+				<xs:choice minOccurs="0">
+					<xs:element name="Question" maxOccurs="unbounded">
+						<xs:complexType>
+							<xs:sequence>
+								<xs:element name="Titre" type="TypeTitreRiche" minOccurs="0"/>
+								<xs:element name="Aide" minOccurs="0">
+									<xs:complexType>
+										<xs:sequence maxOccurs="unbounded">
+											<xs:group ref="GroupeContenusStructures"/>
+										</xs:sequence>
+									</xs:complexType>
+								</xs:element>
+								<xs:element name="Choix" minOccurs="1" maxOccurs="unbounded">
+									<xs:complexType>
+										<xs:sequence>
+											<xs:element name="Titre" type="TypeTitreRiche" minOccurs="0"/>
+											<xs:element name="IntituleSiSelectionne" type="TypeTitreRiche" minOccurs="0">
+												<xs:annotation>
+													<xs:documentation>Label définissant ce choix sélectionné</xs:documentation>
+												</xs:annotation>
+											</xs:element>
+											<xs:element name="SiSelectionne" minOccurs="0">
+												<xs:annotation>
+													<xs:documentation>Variables à affecter si le choix est sélectionné</xs:documentation>
+												</xs:annotation>
+												<xs:complexType>
+													<xs:sequence>
+														<xs:choice maxOccurs="unbounded">
+															<xs:element name="affecteVrai">
+																<xs:complexType>
+																	<xs:attribute name="var" type="xs:string" use="required"/>
+																</xs:complexType>
+															</xs:element>
+															<xs:element name="affecteFaux">
+																<xs:complexType>
+																	<xs:attribute name="var" type="xs:string" use="required"/>
+																</xs:complexType>
+															</xs:element>
+														</xs:choice>
+													</xs:sequence>
+												</xs:complexType>
+											</xs:element>
+										</xs:sequence>
+									</xs:complexType>
+								</xs:element>
+							</xs:sequence>
+						</xs:complexType>
+					</xs:element>
+					<xs:element name="Branche" type="TypeProblematiqueBranche" maxOccurs="unbounded"/>
+				</xs:choice>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	
+	<!-- CommentFaireSi -->
+	<xs:element name="CommentFaireSi">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="Condition" minOccurs="0"/>
+				<xs:element name="Titre" type="xs:string"/>
+			</xs:sequence>
+			<xs:attribute name="ID" type="xs:string" use="required"/>
+			<xs:attribute name="audience" type="xs:string" use="optional"/>
+			<xs:attribute name="pictogramme" type="xs:string" use="optional"/>
+		</xs:complexType>
+	</xs:element>
+	
+</xs:schema>

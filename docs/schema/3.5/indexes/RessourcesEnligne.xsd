@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:import namespace="http://purl.org/dc/elements/1.1/" schemaLocation="../librairie/simpledc.xsd"/>
+	<xs:include schemaLocation="../librairie/commun.xsd"/>
+	
+	<xs:element name="RessourcesEnLigne">
+		<xs:annotation>
+			<xs:documentation>Schéma permettant de référencer l'ensemble des ressources en ligne de l'audience dédoublonnées et classées alphabétiquement</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="dc:date"/>
+				<xs:element ref="Audience" minOccurs="0" maxOccurs="unbounded" type="xs:string"/>
+				<xs:element name="Ressource" minOccurs="0" maxOccurs="unbounded">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="Titre" minOccurs="0" maxOccurs="1" type="xs:string"/>
+						</xs:sequence>
+						<!-- @ID : id de l'élément pointé -->
+						<xs:attribute name="ID" type="xs:string" use="required"/>
+						<!-- @type : type de la ressource en ligne [Formulaire, Téléservice personnalisé sur SP, Téléservice personnalisable, Téléservice, Simulateur, Modèle de document] -->
+						<xs:attribute name="type" type="xs:string" use="required"/>
+					</xs:complexType>
+				</xs:element>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>

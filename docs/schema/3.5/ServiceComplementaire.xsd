@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:dc="http://purl.org/dc/elements/1.1/" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:import namespace="http://purl.org/dc/elements/1.1/" schemaLocation="librairie/simpledc.xsd"/>
+	<xs:include schemaLocation="librairie/commun.xsd"/>
+	<xs:include schemaLocation="librairie/serviceComplementaire.lib.xsd"/>
+	
+<!-- ###
+	   # Elément racine : ServiceComplementaire
+	   ### -->
+	<xs:element name="ServiceComplementaire">
+		<xs:annotation>
+			<xs:documentation>Schéma permettant d'afficher les pages des services complémentaires</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:group ref="dc:elementsGroup"/>
+				<xs:element name="SurTitre" minOccurs="0" maxOccurs="1" type="xs:string"/>
+				<xs:element ref="Audience" minOccurs="0" maxOccurs="unbounded"/>
+				<xs:element ref="Canal" minOccurs="0" maxOccurs="1"/>
+				<xs:element ref="Cible" minOccurs="0" maxOccurs="1"/>
+				<xs:element ref="FilDAriane" minOccurs="0"/>
+				<xs:element ref="Theme" minOccurs="0" maxOccurs="unbounded"/>
+				<xs:element ref="Avertissement" minOccurs="0"/>
+				<xs:element ref="NumeroCerfa" minOccurs="0"/>
+				<xs:element name="LienCerfaGuide" minOccurs="0" maxOccurs="1">
+					<xs:complexType>
+						<xs:attribute name="URL" type="xs:string" use="required"/>
+					</xs:complexType>
+				</xs:element>
+				<xs:element ref="AutreNumero" minOccurs="0"/>
+				<xs:element ref="PivotLocal" minOccurs="0"/>
+				<!-- déprécié (et redondant) par rapport à Connexion (laissé pour compatibilité ascendante) -->
+				<xs:element ref="FranceConnect" minOccurs="0"/>
+				<xs:element ref="Cout" minOccurs="0"/>
+				<xs:element ref="NbEtapes" minOccurs="0"/>
+				<xs:element ref="Connexion" minOccurs="0"/>
+				<xs:element ref="Langue" minOccurs="0"/>
+				<xs:element ref="Calendrier" minOccurs="0"/>
+				<xs:element ref="Public" minOccurs="0"/>
+				<xs:element ref="Recherchable" minOccurs="0"/>
+				<xs:element ref="CaracteristiqueLibre" minOccurs="0" maxOccurs="unbounded"/>
+				<xs:element ref="Introduction" minOccurs="0"/>
+				<xs:element ref="Texte"  minOccurs="0"/>
+				<xs:element name="CommentFaireSelf" minOccurs="0" type="TypeContentSelf"/>
+				<xs:element name="SuiviSelf" minOccurs="0" type="TypeContentSelf"/>
+				<xs:element ref="RechercheGuidee" minOccurs="0" maxOccurs="unbounded"/>
+				<xs:choice minOccurs="0" maxOccurs="unbounded">
+					<xs:element ref="LienWeb" minOccurs="0" maxOccurs="unbounded"/>
+					<xs:element name="LienRessource" type="TypeLienRessourceInterne" minOccurs="0" maxOccurs="unbounded"/>
+				</xs:choice>
+				<xs:element ref="Reference" minOccurs="0" maxOccurs="unbounded"/>
+				<xs:element ref="NoticeLiee" minOccurs="0" maxOccurs="unbounded"/>
+				<xs:element ref="ServiceEnLigneAlternatif" minOccurs="0" maxOccurs="unbounded"/>
+				<xs:element ref="ServiceEnLigneAnnexe" minOccurs="0" maxOccurs="unbounded"/>
+				<xs:element ref="FicheLiee" minOccurs="0" maxOccurs="unbounded"/>
+				<xs:element ref="Definition" minOccurs="0" maxOccurs="unbounded"/>
+				<xs:element ref="Abreviation" minOccurs="0" maxOccurs="unbounded"/>
+				<!--<xs:element ref="QuiPeutMAider" minOccurs="0" maxOccurs="unbounded"/>-->
+				<xs:element ref="OuSAdresser" minOccurs="0" maxOccurs="unbounded"/>
+				<xs:element ref="OuSAdresserSupport" minOccurs="0" maxOccurs="unbounded"/>
+				<xs:element ref="PourEnSavoirPlus" minOccurs="0" maxOccurs="unbounded"/>
+				<xs:element ref="Dossier" minOccurs="0" maxOccurs="unbounded"/>
+				<xs:element ref="FAQ" minOccurs="0"/>
+				<xs:element ref="ValeurRfr" minOccurs="0"/>
+				<xs:element ref="ValeurRfrHisto" minOccurs="0"/>
+			</xs:sequence>
+			<xs:attribute name="ID" type="xs:string" use="required"/>
+			<!-- @type
+					valeurs possibles : Sigle, Acronyme, Aide à la réponse, Avertissement, Correspondant, Fil d'actualité, Définition de glossaire, Information locale préfecture, Information complémentaire, Notice, Centre de contact, Local personnalisé sur SP, Local, National, Support, Partenaire, Information pratique, Référence, Formulaire, Téléservice personnalisé sur SP, Téléservice personnalisable, Téléservice, Simulateur, Modèle de document, formulaireNG, lettreTypeNG, outilRechercheNG, sel-personnaliseSpNG, selNG, sel-pivotLocalNG, simulateurNG, Service en ligne redirigé, Site Web, Source, Valeur,
+			-->
+			<xs:attribute name="type" type="xs:string" use="required"/>
+			<!-- Statut de la publication. Liste de valeurs [enCoursDeMiseAJour] -->
+			<xs:attribute name="statut" type="xs:string" use="optional"/>
+			<xs:attribute name="indisponible" type="xs:boolean" use="optional">
+				<xs:annotation>
+					<xs:documentation>Prend la valeur "true" si le service est indisponible. Dans tous les autres cas, le service est considéré comme disponible</xs:documentation>
+				</xs:annotation>
+			</xs:attribute>
+			<!-- @dateDerniereModificationImportante : date de dernière modification importante -->
+			<xs:attribute name="dateDerniereModificationImportante" type="xs:dateTime" use="optional"/>
+			<!-- URL d'accés à l'élément sur le site service-public.gouv.fr -->
+			<xs:attribute name="spUrl" type="xs:string" use="optional"/>
+			<xs:attribute ref="profilsPro" use="optional"/>
+			<xs:attribute name="origineSelf" type="xs:string" use="optional">
+				<xs:annotation>
+					<xs:documentation>Origine des services en ligne associés à cette FAQ : [interne, externe]</xs:documentation>
+				</xs:annotation>
+			</xs:attribute>
+		</xs:complexType>
+	</xs:element>
+	
+</xs:schema>

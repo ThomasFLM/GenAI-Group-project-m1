@@ -19,19 +19,26 @@ import xml.etree.ElementTree as ET
 
 from .schemas import Document
 
-# Éléments de navigation / métadonnées sans valeur pour répondre aux questions
+# Éléments sans valeur pour répondre aux questions (cf. schéma XSD 3.5, Publication.xsd) :
+# navigation, liens, adresses, médias, logique de personnalisation (Condition), glossaire.
 SKIP_TAGS = {
-    "FilDAriane", "Menu", "SousThemePere", "DossierPere", "SousDossier", "VoirAussi",
-    "Partenaire", "ServiceEnLigne", "PourEnSavoirPlus", "Reference", "OuSAdresser",
-    "Montant", "InformationComplementaire", "Definition", "Abreviation", "QuestionReponse",
-    "CommentFaireSi", "Glossaire", "Actualite", "RessourceConnexe", "LienWeb",
-    "Theme", "Audience", "Canal", "PageWeb", "LienExterneCommente",
+    "FilDAriane", "Menu", "SousThemePere", "DossierPere", "SousDossier", "SousTheme", "Dossier", "Fiche",
+    "FichePrecedente", "FicheSuivante", "RechercheGuidee", "RechercheGuideePere", "Questionnaire",
+    "VoirAussi", "FicheConnexe", "Partenaire", "ServiceEnLigne", "PourEnSavoirPlus", "Reference",
+    "OuSAdresser", "ListeOuSAdresser", "QuiPeutMAider", "Definition", "Abreviation", "QuestionReponse",
+    "CommentFaireSi", "FAQ", "LienExterneCommente", "LienWeb", "Lien", "Theme", "Audience", "Canal",
+    "Cible", "SurTitre", "Condition", "TitreAlternatif", "Image", "Video", "Infographie",
+    "ImageIllustration", "VideoIllustration", "Colonne", "Affichage",
 }
+# Blocs qui ouvrent une (sous-)section : leur Titre devient le chemin de section du passage
 SECTION_TAGS = {"Chapitre", "SousChapitre", "Situation", "Cas", "ASavoir", "ANoter", "Attention",
-                "Introduction", "Avertissement"}
-BLOCK_TAGS = {"Paragraphe", "Item", "Titre", "Ligne", "Rangee", "Cellule", "Expression"}
+                "Exemple", "Rappel", "Consigne", "Complement", "Aide", "Introduction", "Avertissement",
+                "Conclusion"}
 CALLOUT_LABELS = {"ASavoir": "À savoir", "ANoter": "À noter", "Attention": "Attention",
-                  "Avertissement": "Avertissement"}
+                  "Avertissement": "Avertissement", "Exemple": "Exemple", "Rappel": "Rappel",
+                  "Consigne": "Consigne", "Conclusion": "Conclusion"}
+# Types de publication à ignorer (attribut @type de Publication)
+SKIP_PUBLICATION_TYPES = {"Fiche redirigée", "Dossier redirigé"}
 
 _DC = "{http://purl.org/dc/elements/1.1/}"
 
@@ -43,16 +50,22 @@ def local(tag: str) -> str:
 def clean_text(text: str) -> str:
     """Normalise espaces et caractères (NBSP, espaces fines, retours ligne multiples)."""
     text = unicodedata.normalize("NFC", text)
-    text = text.replace(" ", " ").replace(" ", " ").replace(" ", " ")
-    text = re.sub(r"[ \t]+", " ", text)
-    text = re.sub(r" *\n *", "\n", text)
+    text = text.replace("\u00a0", " ").replace("\u202f", " ").replace("\u2009", " ")
+    text = re.sub(r"(?<=\S)[ \t]+", " ", text)
+    text = re.sub(r" *\n", "\n", text)
+    text = re.sub(r"\n +(?! *- )", "\n", text)  # garde l'indentation des sous-listes « - »
     text = re.sub(r"\n{3,}", "\n\n", text)
     return text.strip()
 
 
 def _inline_text(el: ET.Element) -> str:
-    """Texte d'un élément y compris ses liens/expressions inline."""
-    return clean_text(" ".join(t for t in el.itertext()))
+    """Texte d'un élément y compris ses éléments inline (liens, MiseEnEvidence, Valeur...)."""
+    parts = [el.text or ""]
+    for child in el:
+        if local(child.tag) not in SKIP_TAGS:
+            parts.append(_inline_text(child))
+        parts.append(child.tail or "")
+    return clean_text(" ".join(parts))
 
 
 def _title_of(el: ET.Element) -> str:
@@ -62,6 +75,63 @@ def _title_of(el: ET.Element) -> str:
     return ""
 
 
+def _list_lines(liste: ET.Element, depth: int = 0) -> list[str]:
+    """Linéarise une Liste (éventuellement imbriquée) en lignes à puces."""
+    lines = []
+    for item in liste:
+        if local(item.tag) != "Item":
+            continue
+        texts, sub = [], []
+        for child in item:
+            tag = local(child.tag)
+            if tag == "Paragraphe":
+                texts.append(_inline_text(child))
+            elif tag == "Liste":
+                sub.extend(_list_lines(child, depth + 1))
+        text = " ".join(t for t in texts if t)
+        if text:
+            lines.append("  " * depth + "- " + text)
+        lines.extend(sub)
+    return lines
+
+
+def _cell_text(cell: ET.Element) -> str:
+    parts = []
+    for child in cell:
+        tag = local(child.tag)
+        if tag == "Paragraphe":
+            parts.append(_inline_text(child))
+        elif tag == "Liste":
+            parts.extend(line.strip("- ") for line in _list_lines(child))
+    if not parts:  # cellule « mixte » avec du texte direct
+        parts.append(_inline_text(cell))
+    return " ; ".join(p for p in parts if p)
+
+
+def _table_lines(table: ET.Element) -> list[str]:
+    """Linéarise un Tableau. Si une rangée d'en-tête existe, chaque ligne devient
+    « En-tête 1 : valeur ; En-tête 2 : valeur », ce qui garde le lien montant ↔ situation."""
+    lines = []
+    for child in table:
+        if local(child.tag) in {"TitreRiche", "Resume"}:
+            t = _inline_text(child)
+            if t:
+                lines.append(t)
+    headers: list[str] = []
+    for row in table:
+        if local(row.tag) not in {"Rangée", "Rangee"}:
+            continue
+        cells = [_cell_text(c) for c in row if local(c.tag) == "Cellule"]
+        if row.attrib.get("type") == "header" and not headers:
+            headers = cells
+            continue
+        if headers and len(headers) == len(cells):
+            lines.append(" ; ".join(f"{h} : {c}" if h else c for h, c in zip(headers, cells) if c))
+        elif any(cells):
+            lines.append(" | ".join(cells))
+    return lines
+
+
 def _walk(el: ET.Element, path: list[str], sections: list[dict[str, str]], buf: list[str]) -> None:
     tag = local(el.tag)
     if tag in SKIP_TAGS:
@@ -69,22 +139,20 @@ def _walk(el: ET.Element, path: list[str], sections: list[dict[str, str]], buf: 
     if tag in SECTION_TAGS:
         _flush(path, sections, buf)
         title = _title_of(el) or CALLOUT_LABELS.get(tag, "")
-        new_path = path + [title] if title and tag not in {"Introduction"} else path
+        new_path = path + [title] if title and tag not in {"Introduction", "Aide"} else path
         for child in el:
             if local(child.tag) == "Titre":
                 continue
             _walk(child, new_path, sections, buf)
         _flush(new_path, sections, buf)
         return
-    if tag == "Item":
-        buf.append("- " + _inline_text(el))
+    if tag == "Liste":
+        buf.extend(_list_lines(el))
         return
-    if tag == "Ligne" or tag == "Rangee":
-        cells = [_inline_text(c) for c in el if local(c.tag) == "Cellule"]
-        if cells:
-            buf.append(" | ".join(cells))
+    if tag == "Tableau":
+        buf.extend(_table_lines(el))
         return
-    if tag == "Paragraphe":
+    if tag in {"Paragraphe", "TitreFlottant"}:
         txt = _inline_text(el)
         if txt:
             buf.append(txt)
@@ -114,7 +182,7 @@ def parse_fiche_xml(xml_bytes: bytes) -> Document | None:
     if local(root.tag) != "Publication":
         return None
     doc_id = root.attrib.get("ID", "")
-    if not doc_id:
+    if not doc_id or root.attrib.get("type", "") in SKIP_PUBLICATION_TYPES:
         return None
 
     def dc(name: str) -> str:
@@ -152,7 +220,7 @@ def parse_fiche_xml(xml_bytes: bytes) -> Document | None:
         theme=theme,
         subtheme=subtheme,
         audience=_inline_text(audience_el) if audience_el is not None else "Particuliers",
-        date=_parse_date(dc("date")),
+        date=_parse_date(dc("date")) or _parse_date(root.attrib.get("dateDerniereModificationImportante", "")),
         description=dc("description"),
         sections=sections,
     )

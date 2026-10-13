@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:import namespace="http://purl.org/dc/elements/1.1/" schemaLocation="../librairie/simpledc.xsd"/>
+	<xs:include schemaLocation="../librairie/commun.xsd"/>
+	
+	<xs:element name="DatesModImp">
+		<xs:annotation>
+			<xs:documentation>Schéma permettant de référencer l'ensemble des fiches/dossiers de l'audience possédant une date de modification importante de définie (classés par ordre chronologique croissant)</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="dc:date"/>
+				<xs:element ref="Audience" minOccurs="0" maxOccurs="unbounded"/>
+				<xs:element name="Item" minOccurs="0" maxOccurs="unbounded">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="Titre" minOccurs="0" maxOccurs="1" type="xs:string"/>
+						</xs:sequence>
+						<xs:attribute name="type" type="xs:string" use="optional"/><!-- optional pour compat ascendante 3.4. FIXME 3.5 : rendre obligatoire -->
+						<xs:attribute name="ID" type="xs:string" use="required"/>
+						<!-- @dateDerniereModificationImportante : date de dernière modification importante -->
+						<xs:attribute name="dateDerniereModificationImportante" type="xs:dateTime" use="optional"/>
+					</xs:complexType>
+				</xs:element>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>

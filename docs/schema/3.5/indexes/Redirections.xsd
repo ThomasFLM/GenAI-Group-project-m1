@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:dc="http://purl.org/dc/elements/1.1/"
+	xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified"
+	attributeFormDefault="unqualified">
+	<xs:import namespace="http://purl.org/dc/elements/1.1/" schemaLocation="../librairie/simpledc.xsd"/>
+	<xs:include schemaLocation="../librairie/commun.xsd"/>
+	
+	<xs:element name="Redirections">
+		<xs:annotation>
+			<xs:documentation>Liste les redirections</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="dc:date"/>
+				<xs:element ref="Audience" minOccurs="0" maxOccurs="unbounded"/>
+				<xs:sequence>
+					<xs:choice minOccurs="0" maxOccurs="unbounded">
+						<xs:element name="Redirection" minOccurs="0" maxOccurs="unbounded">
+							<xs:complexType mixed="true">
+								<xs:attribute name="from" type="xs:string" use="required" />
+								<xs:attribute name="to" type="xs:string" use="required" />
+								<!-- @audience : audience dans laquelle retrouver le fichier XML référencé dans le @to 
+												Si cet attribut n'est pas renseigné, c'est l'attribut type qui permet de déduire le path (exemple : glossaire)
+								-->
+								<xs:attribute name="audience" type="xs:string" use="optional"/>
+								<!-- @corpus : corpus du fichier XML référencé : [actualites|vosdroits] -->
+								<xs:attribute name="corpus" type="xs:string" use="optional"/>
+								<xs:attribute name="date" type="xs:string" use="required" />
+								<xs:attribute name="type" type="xs:string" use="required"/>
+							</xs:complexType>
+						</xs:element>
+						<xs:element name="RedirectionExterne" minOccurs="0" maxOccurs="unbounded">
+							<xs:complexType mixed="true">
+								<xs:attribute name="from" type="xs:string" use="required" />
+								<xs:attribute name="toUrl" type="xs:string" use="required" />
+								<xs:attribute name="date" type="xs:string" use="required" />
+							</xs:complexType>
+						</xs:element>
+					</xs:choice>
+				</xs:sequence>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>
