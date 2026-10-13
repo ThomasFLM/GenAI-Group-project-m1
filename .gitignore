@@ -33,3 +33,9 @@ models/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Index RAG généré
+data/index/
+
+# Sorties d'expériences intermédiaires (garder eval/results.jsonl, metrics.json, report.md du run final)
+eval/runs/

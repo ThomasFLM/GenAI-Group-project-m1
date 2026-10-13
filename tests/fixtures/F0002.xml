@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Publication xmlns:dc="http://purl.org/dc/elements/1.1/" ID="F0002" type="Fiche d'information">
+  <dc:title>Contester une amende forfaitaire</dc:title>
+  <dc:subject>Transports - Mobilité</dc:subject>
+  <dc:date>modified 2023-06-01</dc:date>
+  <Theme ID="N19812"><Titre>Transports - Mobilité</Titre></Theme>
+  <Texte>
+    <Chapitre>
+      <Titre><Paragraphe>Délai</Paragraphe></Titre>
+      <Paragraphe>Vous avez 45 jours à partir de l'envoi de l'avis de contravention pour la contester.</Paragraphe>
+    </Chapitre>
+  </Texte>
+</Publication>
