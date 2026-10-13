@@ -1,4 +1,4 @@
-from rag.chunking import chunk_document, split_section
+from rag.chunking import chunk_document, pack_units, split_section
 from rag.ingestion import clean_text, select_documents
 
 
@@ -16,7 +16,7 @@ def test_parse_fiche(docs):
     assert "- 2 mois dans le cas contraire." in text
     assert "Accueil particuliers" not in text  # fil d'Ariane ignoré
     assert "Bail" not in text                 # « Voir aussi » ignoré
-    assert by_id["F0002"].url == "https://www.service-public.fr/particuliers/vosdroits/F0002"
+    assert by_id["F0002"].url == "https://www.service-public.gouv.fr/particuliers/vosdroits/F0002"
 
 
 def test_clean_text():
@@ -38,7 +38,10 @@ def test_chunks_respect_sections(docs):
     assert chunks[0].section == "Résumé"
     for c in chunks:
         assert c.doc_id == "F0001" and c.chunk_id.startswith("F0001#")
-        assert not ("Location vide" in c.section and "2 mois" in c.text)
+    montant = next(c for c in chunks if c.section == "Montant")
+    # les cas d'un même chapitre sont regroupés, chacun garde son titre dans le texte
+    assert "### Location vide\nLe montant du dépôt de garantie est limité à 1 mois" in montant.text
+    assert montant.text.index("### Location meublée") < montant.text.index("2 mois")
     assert "Dépôt de garantie" in chunks[1].indexed_text
 
 
@@ -47,8 +50,17 @@ def test_split_section_sizes():
     pieces = split_section(text, max_words=80, overlap_words=10)
     assert len(pieces) > 1
     assert all(len(p.split()) <= 80 + 10 + 32 for p in pieces)
-    # recouvrement : la fin d'un passage est reprise au début du suivant
-    assert pieces[0].split()[-3:] == pieces[1].split()[:3]
+    # recouvrement : les 10 derniers mots d'un passage sont repris au début du suivant
+    assert pieces[1].split()[0] == "[…]"
+    assert pieces[1].split()[1:11] == pieces[0].split()[-10:]
+
+
+def test_pack_units_keeps_heading_with_text_and_repeats_it():
+    units = [("Cas A", "intro " * 5)] + [("Cas A", f"para{i} " + "mot " * 20) for i in range(6)]
+    pieces = pack_units(units, max_words=60, overlap_words=0)
+    assert pieces[0].startswith("### Cas A\nintro")
+    assert all(p.startswith("### Cas A (suite)") for p in pieces[1:])
+    assert not any(p.rstrip().endswith("### Cas A") for p in pieces)
 
 
 def test_schema_35_table_condition_nested_list(docs):
@@ -69,3 +81,23 @@ def test_schema_35_table_condition_nested_list(docs):
 
 def test_redirected_fiche_skipped(docs):
     assert "F0004" not in {d.doc_id for d in docs}
+
+
+def test_inline_elements_no_spurious_spaces():
+    from rag.ingestion import parse_fiche_xml
+
+    xml = ('<Publication xmlns:dc="http://purl.org/dc/elements/1.1/" ID="F9" type="Fiche d\'information">'
+           '<dc:title>T</dc:title><Texte><Paragraphe>Au plus tard le 6<Exposant>e</Exposant> vendredi, '
+           'à <MiseEnEvidence>18 ans</MiseEnEvidence>. Voir <LienInterne LienPublication="R1">CNRACL</LienInterne>.'
+           '</Paragraphe></Texte></Publication>').encode()
+    assert parse_fiche_xml(xml).text == "Au plus tard le 6e vendredi, à 18 ans. Voir CNRACL."
+
+
+def test_spaces_inside_inline_elements_are_kept():
+    from rag.ingestion import parse_fiche_xml
+
+    xml = ('<Publication xmlns:dc="http://purl.org/dc/elements/1.1/" ID="F9" type="Fiche d\'information">'
+           '<dc:title>T</dc:title><Texte><Paragraphe>la <MiseEnEvidence>durée de validité </MiseEnEvidence>de la '
+           'carte est passée de <MiseEnEvidence>10 </MiseEnEvidence>à <MiseEnEvidence>15<MiseEnEvidence/> ans'
+           '</MiseEnEvidence>.</Paragraphe></Texte></Publication>').encode()
+    assert parse_fiche_xml(xml).text == "la durée de validité de la carte est passée de 10 à 15 ans."

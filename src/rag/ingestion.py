@@ -37,8 +37,10 @@ SECTION_TAGS = {"Chapitre", "SousChapitre", "Situation", "Cas", "ASavoir", "ANot
 CALLOUT_LABELS = {"ASavoir": "À savoir", "ANoter": "À noter", "Attention": "Attention",
                   "Avertissement": "Avertissement", "Exemple": "Exemple", "Rappel": "Rappel",
                   "Consigne": "Consigne", "Conclusion": "Conclusion"}
-# Types de publication à ignorer (attribut @type de Publication)
-SKIP_PUBLICATION_TYPES = {"Fiche redirigée", "Dossier redirigé"}
+# Types de publication retenus (attribut @type, éventuellement suffixé « conditionnée »).
+# Exclus : « Recherche guidée » (questionnaires arborescents, jusqu'à 850 000 mots),
+# « Fiche avec liens externes » (liens seuls), « Comment faire si » (agrégats), fiches redirigées.
+KEEP_PUBLICATION_TYPES = ("Fiche d'information", "Fiche Question-réponse")
 
 _DC = "{http://purl.org/dc/elements/1.1/}"
 
@@ -58,14 +60,21 @@ def clean_text(text: str) -> str:
     return text.strip()
 
 
-def _inline_text(el: ET.Element) -> str:
-    """Texte d'un élément y compris ses éléments inline (liens, MiseEnEvidence, Valeur...)."""
+def _raw_inline(el: ET.Element) -> str:
+    """Concatène le texte d'un élément et de ses éléments inline, sans rien retirer :
+    les espaces sont parfois à l'intérieur des balises (« validité </MiseEnEvidence>de »)."""
     parts = [el.text or ""]
     for child in el:
         if local(child.tag) not in SKIP_TAGS:
-            parts.append(_inline_text(child))
+            parts.append(_raw_inline(child))
         parts.append(child.tail or "")
-    return clean_text(" ".join(parts))
+    return "".join(parts)
+
+
+def _inline_text(el: ET.Element) -> str:
+    """Texte d'un élément y compris ses éléments inline (liens, MiseEnEvidence, Exposant...).
+    Pas d'espace ajouté entre éléments : « 1<Exposant>er</Exposant> » -> « 1er »."""
+    return clean_text(_raw_inline(el).replace("\n", " "))
 
 
 def _title_of(el: ET.Element) -> str:
@@ -141,7 +150,7 @@ def _walk(el: ET.Element, path: list[str], sections: list[dict[str, str]], buf: 
         title = _title_of(el) or CALLOUT_LABELS.get(tag, "")
         new_path = path + [title] if title and tag not in {"Introduction", "Aide"} else path
         for child in el:
-            if local(child.tag) == "Titre":
+            if local(child.tag) in {"Titre", "TitreRiche"}:  # TitreRiche : doublon du titre dans les Cas
                 continue
             _walk(child, new_path, sections, buf)
         _flush(new_path, sections, buf)
@@ -182,7 +191,8 @@ def parse_fiche_xml(xml_bytes: bytes) -> Document | None:
     if local(root.tag) != "Publication":
         return None
     doc_id = root.attrib.get("ID", "")
-    if not doc_id or root.attrib.get("type", "") in SKIP_PUBLICATION_TYPES:
+    pub_type = root.attrib.get("type", "")
+    if not doc_id or not pub_type.startswith(KEEP_PUBLICATION_TYPES):
         return None
 
     def dc(name: str) -> str:
@@ -216,7 +226,8 @@ def parse_fiche_xml(xml_bytes: bytes) -> Document | None:
     return Document(
         doc_id=doc_id,
         title=title,
-        url=root.attrib.get("spUrl", f"https://www.service-public.fr/particuliers/vosdroits/{doc_id}"),
+        url=root.attrib.get("spUrl", f"https://www.service-public.gouv.fr/particuliers/vosdroits/{doc_id}"),
+        doc_type=pub_type,
         theme=theme,
         subtheme=subtheme,
         audience=_inline_text(audience_el) if audience_el is not None else "Particuliers",

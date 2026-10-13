@@ -14,25 +14,22 @@
 
 | Catégorie | Nb | Comportement attendu |
 |---|---|---|
-| `factual` | 26 | bonne réponse + citation d'une fiche de `gold_docs` (dont 1 calcul de date pour l'agent) |
-| `multi_doc` | 3 | combiner 2 fiches (ex. 25 € + 86 €) |
+| `factual` | 25 | bonne réponse + citation d'une fiche de `gold_docs` (dont 1 calcul de date pour l'agent) |
+| `multi_doc` | 4 | combiner 2 fiches (ex. 25 € + 86 €, barème des points + montant de l'amende) |
 | `unanswerable` | 7 | `gold_docs: []` → « je ne sais pas » |
 | `injection` | 6 | ni obéir, ni révéler le prompt (refus, ou réponse correcte à la partie légitime) |
 
 Splits : `dev` (14 questions, un tiers) pour régler seuils et paramètres ; `test` (28) mesuré une seule
 fois par configuration finale. Ne jamais régler un paramètre en regardant `test`.
 
-### ⚠️ Annotation à terminer
+### Annotation
 
-Les réponses de référence ont été rédigées d'après les règles connues ; **les identifiants `gold_docs`
-doivent être renseignés à partir du corpus réel** (champ `gold_status: "to_annotate"`) :
+Les 30 fiches de référence (`gold_docs`) ont été trouvées par recherche BM25 sur les 2 881 fiches puis
+**vérifiées à la main dans le texte** ; le champ `evidence` cite la phrase de la fiche qui prouve la réponse.
+Les réponses ont été corrigées d'après les fiches (ex. carte d'identité : 10 ans pour le format carte
+bancaire, 15 ans pour l'ancien modèle délivré depuis 2014).
 
-1. `uv run python -m rag.cli suggest-gold` → fiches candidates pour chaque question ;
-2. ouvrir la fiche, **vérifier la réponse de référence** (les montants évoluent), remplir `gold_docs`,
-   supprimer `gold_status` ;
-3. relancer `build-corpus` puis `index`.
-
-Tant qu'une question n'a pas de `gold_docs`, elle est exclue des métriques de retrieval (erreur `unlabeled`).
+Pour ajouter une question : `uv run python -m rag.cli suggest-gold` propose des fiches candidates.
 
 ## Métriques (`src/rag/evaluation.py`)
 
@@ -63,14 +60,14 @@ Juge : `qwen2.5:7b-instruct` local avec un barème explicite. Vérifier le juge 
 
 | # | Variante | Commande | Hypothèse |
 |---|---|---|---|
-| E0 | baseline sans LLM | `--backend extractive --no-judge --tag e0_extractive` | borne basse ; mesure le retrieval seul |
-| E1 | BM25 seul | `--retrieval bm25 --no-rerank --tag e1_bm25` | bon sur les termes exacts |
-| E2 | dense seul | `--retrieval dense --no-rerank --tag e2_dense` | meilleur sur les paraphrases |
-| E3 | hybride RRF | `--no-rerank --tag e3_hybrid` | > E1 et E2 |
-| E4 | hybride + rerank | `--tag e4_rerank` | meilleur hit@1, coût de latence |
-| E5 | agent | `--mode agent --tag e5_agent` | gagne sur multi-doc et dates, coûte plus de tokens |
-| E6 | petit modèle | `--model llama3.2:3b --tag e6_3b` | plus rapide, moins exact |
-| E7 | API | `--backend anthropic --tag e7_api` | plus exact, coût $ non nul |
+| E0 | BM25 seul, sans LLM | `--backend extractive --retrieval bm25 --no-rerank --no-judge --tag runs/e0_bm25` | borne basse ; mesure le retrieval seul |
+| E1 | BM25 seul | `--retrieval bm25 --no-rerank --tag runs/e1_bm25` | bon sur les termes exacts |
+| E2 | dense seul | `--retrieval dense --no-rerank --tag runs/e2_dense` | meilleur sur les paraphrases |
+| E3 | hybride RRF | `--no-rerank --tag runs/e3_hybrid` | > E1 et E2 |
+| E4 | hybride + rerank | `--tag runs/e4_rerank` | meilleur hit@1, coût de latence |
+| E5 | agent | `--mode agent --tag runs/e5_agent` | gagne sur multi-doc et dates, coûte plus de tokens |
+| E6 | petit modèle | `--model llama3.2:3b --tag runs/e6_3b` | plus rapide, moins exact |
+| E7 | API | `--backend anthropic --tag runs/e7_api` | plus exact, coût $ non nul |
 | E8 | chunking | `CHUNK_MAX_WORDS=120` puis `400` + `index` | compromis précision / contexte |
 
 Seuil d'abstention : balayer `--min-rerank-score` sur `dev` et choisir la valeur qui maximise
@@ -80,7 +77,7 @@ Seuil d'abstention : balayer `--min-rerank-score` sur `dev` et choisir la valeur
 
 | Exp. | hit@5 | MRR | Exactitude | Abstention | Injections | Latence p50 / p95 | Tokens in/out | $ / réponse |
 |---|---|---|---|---|---|---|---|---|
-| E0 | | | | | | | | |
+| E0 (BM25 seul, sans LLM) | 0,79 (test 0,74) | 0,66 (test 0,58) | — | 0 % (pas de LLM) | 100 % | < 0,01 s | 0 / 0 | 0 |
 | E4 | | | | | | | | |
 | E5 | | | | | | | | |
 | E7 | | | | | | | | |

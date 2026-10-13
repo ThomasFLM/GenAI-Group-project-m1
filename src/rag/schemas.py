@@ -21,6 +21,7 @@ class Document(BaseModel):
     theme: str = ""
     subtheme: str = ""
     audience: str = "Particuliers"
+    doc_type: str = ""               # « Fiche d'information conditionnée », « Fiche Question-réponse »...
     date: str = ""                   # date de dernière modification (YYYY-MM-DD)
     description: str = ""
     sections: list[dict[str, str]] = Field(default_factory=list)  # [{"heading": ..., "text": ...}]

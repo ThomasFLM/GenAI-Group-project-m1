@@ -32,7 +32,7 @@ if st.button("Demander") and question:
         resp = load_assistant(backend).ask(question, mode=mode, since=since)
     st.markdown(f"### Réponse\n{resp.answer}")
     for doc_id in resp.cited_sources:
-        st.markdown(f"- [{doc_id}](https://www.service-public.fr/particuliers/vosdroits/{doc_id})")
+        st.markdown(f"- [{doc_id}](https://www.service-public.gouv.fr/particuliers/vosdroits/{doc_id})")
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Latence", f"{resp.latency_s:.2f} s")
     c2.metric("Tokens in/out", f"{resp.tokens_in}/{resp.tokens_out}")
