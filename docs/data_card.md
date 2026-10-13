@@ -16,8 +16,12 @@
 ## Sélection (~500 documents)
 
 L'archive téléchargée le 13/10/2026 contient 5 573 fichiers XML : 3 003 fiches `F*`, 2 318 ressources `R*`
-(formulaires, sites, adresses), 243 dossiers/thèmes `N*` et quelques index. Fichiers conformes au schéma
-3.5 (`xsi:noNamespaceSchemaLocation="../Schemas/3.5/Publication.xsd"`).
+(formulaires, sites, adresses), 243 dossiers/thèmes `N*` et quelques index. Les fiches déclarent le schéma
+3.5 (`xsi:noNamespaceSchemaLocation="../Schemas/3.5/Publication.xsd"`) mais **seules 634 sur 3 003 le
+respectent** à la validation (lxml) : la plupart des écarts viennent d'un élément `TitreRiche` absent du
+schéma (6 438 occurrences, doublon du titre des cas, ignoré par le parseur), puis de `Liste`, `BlocCas`,
+`ServiceEnLigne`, `ASavoir` placés à des endroits non prévus. Le parseur parcourt donc l'arbre de façon
+générique au lieu de suivre strictement le schéma.
 
 | Type de fiche (`@type`) | Nb | Mots (médiane) | Retenu ? |
 |---|---|---|---|
