@@ -1,4 +1,4 @@
-# Lance toute la chaîne sur un PC Windows : vérifications, corpus, index, évaluations.
+﻿# Lance toute la chaîne sur un PC Windows : vérifications, corpus, index, évaluations.
 #   powershell -ExecutionPolicy Bypass -File scripts\run_all.ps1
 # Options : -SkipExperiments (seulement l'évaluation principale), -Model qwen2.5:3b-instruct
 param(
