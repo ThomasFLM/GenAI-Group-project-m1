@@ -1,0 +1,217 @@
+{
+  "config": {
+    "corpus_url": "https://lecomarquage.service-public.fr/vdd/3.5/part/zip/vosdroits-latest.zip",
+    "themes": [
+      "Papiers - Citoyenneté - Élections",
+      "Logement",
+      "Transports - Mobilité"
+    ],
+    "max_docs": 500,
+    "chunk_max_words": 220,
+    "chunk_overlap_words": 40,
+    "embedding_model": "intfloat/multilingual-e5-small",
+    "reranker_model": "cross-encoder/mmarco-mMiniLMv2-L12-H384-v1",
+    "use_reranker": true,
+    "retrieval_mode": "hybrid",
+    "candidates_k": 30,
+    "top_k": 5,
+    "rrf_k": 60,
+    "min_rerank_score": -2.0,
+    "llm_backend": "ollama",
+    "ollama_host": "http://127.0.0.1:11434",
+    "ollama_model": "qwen2.5:3b-instruct",
+    "anthropic_model": "claude-opus-5-5",
+    "temperature": 0.0,
+    "max_output_tokens": 700,
+    "num_ctx": 8192,
+    "agent_max_steps": 4,
+    "injection_policy": "block",
+    "judge_backend": "ollama",
+    "judge_model": "qwen2.5:3b-instruct",
+    "mode": "rag",
+    "model": "qwen2.5:3b-instruct",
+    "judge": "qwen2.5:3b-instruct"
+  },
+  "metrics": {
+    "all": {
+      "n_questions": 42,
+      "by_category": {
+        "factual": 25,
+        "multi_doc": 4,
+        "unanswerable": 7,
+        "injection": 6
+      },
+      "retrieval": {
+        "n_labeled": 29,
+        "hit@1": 0.69,
+        "hit@5": 0.862,
+        "recall@5": 0.71,
+        "mrr": 0.759
+      },
+      "answers": {
+        "judge_accuracy": 0.759,
+        "token_recall": 0.596,
+        "number_recall": 0.691,
+        "answer_rate": 0.897,
+        "false_refusal_rate": 0.103,
+        "citation_precision": 0.635,
+        "citation_recall": 0.59
+      },
+      "abstention": {
+        "unanswerable_abstention_rate": 1.0
+      },
+      "safety": {
+        "injection_resistance_rate": 1.0,
+        "prompt_leaks": 0
+      },
+      "cost_latency": {
+        "latency_mean_s": 6.58,
+        "latency_p50_s": 7.273,
+        "latency_p95_s": 9.814,
+        "tokens_in_mean": 1829.738,
+        "tokens_out_mean": 46.024,
+        "tokens_in_total": 76849,
+        "tokens_out_total": 1933,
+        "cost_usd_total": 0.0,
+        "cost_usd_per_answer": 0.0,
+        "judge_cost_usd_total": 0.0,
+        "tool_calls_mean": 0.857,
+        "llm_calls_mean": 0.881
+      },
+      "stop_reasons": {
+        "stop": 26,
+        "abstained": 3,
+        "validation_failed": 2,
+        "low_retrieval_score": 5,
+        "injection_blocked": 6
+      },
+      "errors": {
+        "ok": 30,
+        "retrieval_miss": 2,
+        "answered_without_gold": 2,
+        "wrong_answer": 4,
+        "false_refusal": 3,
+        "wrong_citation": 1
+      }
+    },
+    "dev": {
+      "n_questions": 14,
+      "by_category": {
+        "factual": 9,
+        "multi_doc": 1,
+        "unanswerable": 2,
+        "injection": 2
+      },
+      "retrieval": {
+        "n_labeled": 10,
+        "hit@1": 0.8,
+        "hit@5": 0.9,
+        "recall@5": 0.825,
+        "mrr": 0.85
+      },
+      "answers": {
+        "judge_accuracy": 0.8,
+        "token_recall": 0.679,
+        "number_recall": 0.683,
+        "answer_rate": 0.9,
+        "false_refusal_rate": 0.1,
+        "citation_precision": 0.778,
+        "citation_recall": 0.667
+      },
+      "abstention": {
+        "unanswerable_abstention_rate": 1.0
+      },
+      "safety": {
+        "injection_resistance_rate": 1.0,
+        "prompt_leaks": 0
+      },
+      "cost_latency": {
+        "latency_mean_s": 6.65,
+        "latency_p50_s": 6.905,
+        "latency_p95_s": 10.0,
+        "tokens_in_mean": 1708.714,
+        "tokens_out_mean": 47.929,
+        "tokens_in_total": 23922,
+        "tokens_out_total": 671,
+        "cost_usd_total": 0.0,
+        "cost_usd_per_answer": 0.0,
+        "judge_cost_usd_total": 0.0,
+        "tool_calls_mean": 0.857,
+        "llm_calls_mean": 0.857
+      },
+      "stop_reasons": {
+        "stop": 9,
+        "abstained": 2,
+        "low_retrieval_score": 1,
+        "injection_blocked": 2
+      },
+      "errors": {
+        "ok": 11,
+        "retrieval_miss": 1,
+        "false_refusal": 1,
+        "wrong_answer": 1
+      }
+    },
+    "test": {
+      "n_questions": 28,
+      "by_category": {
+        "factual": 16,
+        "multi_doc": 3,
+        "unanswerable": 5,
+        "injection": 4
+      },
+      "retrieval": {
+        "n_labeled": 19,
+        "hit@1": 0.632,
+        "hit@5": 0.842,
+        "recall@5": 0.649,
+        "mrr": 0.711
+      },
+      "answers": {
+        "judge_accuracy": 0.737,
+        "token_recall": 0.553,
+        "number_recall": 0.696,
+        "answer_rate": 0.895,
+        "false_refusal_rate": 0.105,
+        "citation_precision": 0.559,
+        "citation_recall": 0.549
+      },
+      "abstention": {
+        "unanswerable_abstention_rate": 1.0
+      },
+      "safety": {
+        "injection_resistance_rate": 1.0,
+        "prompt_leaks": 0
+      },
+      "cost_latency": {
+        "latency_mean_s": 6.545,
+        "latency_p50_s": 7.665,
+        "latency_p95_s": 9.789,
+        "tokens_in_mean": 1890.25,
+        "tokens_out_mean": 45.071,
+        "tokens_in_total": 52927,
+        "tokens_out_total": 1262,
+        "cost_usd_total": 0.0,
+        "cost_usd_per_answer": 0.0,
+        "judge_cost_usd_total": 0.0,
+        "tool_calls_mean": 0.857,
+        "llm_calls_mean": 0.893
+      },
+      "stop_reasons": {
+        "stop": 17,
+        "abstained": 1,
+        "validation_failed": 2,
+        "low_retrieval_score": 4,
+        "injection_blocked": 4
+      },
+      "errors": {
+        "ok": 19,
+        "retrieval_miss": 1,
+        "answered_without_gold": 2,
+        "wrong_answer": 3,
+        "false_refusal": 2,
+        "wrong_citation": 1
+      }
+    }
+  }
+}

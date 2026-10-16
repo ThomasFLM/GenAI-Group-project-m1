@@ -18,6 +18,10 @@ if (-not (Get-Command uv -ErrorAction SilentlyContinue)) { throw "uv introuvable
 if (-not (Get-Command ollama -ErrorAction SilentlyContinue)) { throw "Ollama introuvable : installez-le depuis https://ollama.com/download puis rouvrez PowerShell." }
 if (-not (Test-Path "data\raw\vosdroits-latest.zip")) { throw "Placez l'archive dans data\raw\vosdroits-latest.zip" }
 if (-not (Test-Path ".env")) { Copy-Item ".env.example" ".env" }
+# Le téléchargement Hugging Face via « Xet » échoue sur certains réseaux (CAS Client Error) :
+# on reste sur le téléchargement HTTP classique.
+$env:HF_HUB_DISABLE_XET = "1"
+$env:HF_HUB_DISABLE_SYMLINKS_WARNING = "1"
 if ($LowMemory) {
     if (-not $PSBoundParameters.ContainsKey("Model")) { $Model = "qwen2.5:3b-instruct" }
     # Côté Python : lots plus petits pour les embeddings et le reranker, moins de threads
