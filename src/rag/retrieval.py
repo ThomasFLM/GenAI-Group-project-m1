@@ -9,7 +9,7 @@ from pathlib import Path
 import numpy as np
 from rank_bm25 import BM25Okapi
 
-from .config import CHUNKS_PATH, INDEX_DIR, Settings
+from .config import CHUNKS_PATH, INDEX_DIR, Settings, _env_int
 from .schemas import Chunk, RetrievedChunk
 from .text import tokenize
 
@@ -25,7 +25,9 @@ class SentenceTransformerEmbedder:
         self.model = SentenceTransformer(model_name)
         self.is_e5 = "e5" in model_name.lower()
 
-    def encode(self, texts: list[str], kind: str = "passage", batch_size: int = 32) -> np.ndarray:
+    def encode(self, texts: list[str], kind: str = "passage", batch_size: int | None = None) -> np.ndarray:
+        # EMBED_BATCH_SIZE plus petit = moins de RAM pendant l'indexation (mais plus lent)
+        batch_size = batch_size or _env_int("EMBED_BATCH_SIZE", 32)
         if self.is_e5:
             texts = [f"{'query' if kind == 'query' else 'passage'}: {t}" for t in texts]
         emb = self.model.encode(texts, batch_size=batch_size, normalize_embeddings=True,
@@ -64,7 +66,8 @@ class CrossEncoderReranker:
     def score(self, query: str, texts: list[str]) -> list[float]:
         if not texts:
             return []
-        return [float(s) for s in self.model.predict([(query, t) for t in texts])]
+        pairs = [(query, t) for t in texts]
+        return [float(s) for s in self.model.predict(pairs, batch_size=_env_int("RERANK_BATCH_SIZE", 32))]
 
 
 # --------------------------------------------------------------------------- index

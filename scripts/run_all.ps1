@@ -1,9 +1,12 @@
 ﻿# Lance toute la chaîne sur un PC Windows : vérifications, corpus, index, évaluations.
 #   powershell -ExecutionPolicy Bypass -File scripts\run_all.ps1
 # Options : -SkipExperiments (seulement l'évaluation principale), -Model qwen2.5:3b-instruct
+#           -LowMemory : vise environ la moitié de 16 Go de RAM (plus lent). Prend qwen2.5:3b-instruct
+#                        sauf si -Model est donné, et relance le serveur Ollama avec des réglages économes.
 param(
     [string]$Model = "qwen2.5:7b-instruct",
-    [switch]$SkipExperiments
+    [switch]$SkipExperiments,
+    [switch]$LowMemory
 )
 $ErrorActionPreference = "Stop"
 Set-Location (Split-Path $PSScriptRoot -Parent)
@@ -15,6 +18,33 @@ if (-not (Get-Command uv -ErrorAction SilentlyContinue)) { throw "uv introuvable
 if (-not (Get-Command ollama -ErrorAction SilentlyContinue)) { throw "Ollama introuvable : installez-le depuis https://ollama.com/download puis rouvrez PowerShell." }
 if (-not (Test-Path "data\raw\vosdroits-latest.zip")) { throw "Placez l'archive dans data\raw\vosdroits-latest.zip" }
 if (-not (Test-Path ".env")) { Copy-Item ".env.example" ".env" }
+if ($LowMemory) {
+    if (-not $PSBoundParameters.ContainsKey("Model")) { $Model = "qwen2.5:3b-instruct" }
+    # Côté Python : lots plus petits pour les embeddings et le reranker, moins de threads
+    $env:EMBED_BATCH_SIZE = "8"
+    $env:RERANK_BATCH_SIZE = "8"
+    $env:OMP_NUM_THREADS = "2"
+    $env:MKL_NUM_THREADS = "2"
+    $env:TOKENIZERS_PARALLELISM = "false"
+    # Côté Ollama : un seul modèle chargé, une seule requête à la fois, cache KV compressé
+    $env:OLLAMA_MAX_LOADED_MODELS = "1"
+    $env:OLLAMA_NUM_PARALLEL = "1"
+    $env:OLLAMA_FLASH_ATTENTION = "1"
+    $env:OLLAMA_KV_CACHE_TYPE = "q8_0"
+    $env:OLLAMA_KEEP_ALIVE = "2m"
+    # Ces variables ne sont lues qu'au démarrage du serveur : on arrête celui de l'icône
+    # de la barre des tâches et on en relance un qui hérite de ces réglages.
+    Get-Process -Name "ollama app", "ollama" -ErrorAction SilentlyContinue | Stop-Process -Force
+    Start-Sleep -Seconds 2
+    Start-Process -FilePath (Get-Command ollama).Source -ArgumentList "serve" -WindowStyle Hidden
+    $ok = $false
+    for ($i = 0; $i -lt 30 -and -not $ok; $i++) {
+        Start-Sleep -Seconds 1
+        try { Invoke-RestMethod "http://localhost:11434/api/version" -TimeoutSec 2 | Out-Null; $ok = $true } catch {}
+    }
+    if (-not $ok) { throw "Le serveur Ollama ne répond pas après redémarrage (lancez 'ollama serve' à la main)." }
+    Write-Host "Mode mémoire réduite : modèle $Model, serveur Ollama relancé avec réglages économes."
+}
 $env:OLLAMA_MODEL = $Model
 $env:JUDGE_MODEL = $Model
 
@@ -50,5 +80,6 @@ if (-not $SkipExperiments) {
 }
 
 Step "Terminé"
+if ($LowMemory) { ollama ps }
 Write-Host "Résultats : eval\report.md, eval\metrics.json (et eval\runs\*\report.md)"
 Write-Host "Envoyez eval\report.md et les fichiers eval\runs\*\metrics.json pour l'analyse."
