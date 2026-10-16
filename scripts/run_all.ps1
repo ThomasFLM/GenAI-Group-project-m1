@@ -34,15 +34,26 @@ if ($LowMemory) {
     $env:OLLAMA_KEEP_ALIVE = "2m"
     # Ces variables ne sont lues qu'au démarrage du serveur : on arrête celui de l'icône
     # de la barre des tâches et on en relance un qui hérite de ces réglages.
+    # 127.0.0.1 et pas localhost : sous Windows, localhost essaie d'abord ::1 (IPv6), où Ollama
+    # n'écoute pas, et chaque tentative refusée coûte ~2 s.
+    $env:OLLAMA_HOST = "http://127.0.0.1:11434"
     Get-Process -Name "ollama app", "ollama" -ErrorAction SilentlyContinue | Stop-Process -Force
-    Start-Sleep -Seconds 2
-    Start-Process -FilePath (Get-Command ollama).Source -ArgumentList "serve" -WindowStyle Hidden
+    Start-Sleep -Seconds 3
+    $ollamaExe = (Get-Command ollama).Source
+    $logOut = Join-Path $env:TEMP "ollama_serve_out.log"
+    $logErr = Join-Path $env:TEMP "ollama_serve_err.log"
+    $proc = Start-Process -FilePath $ollamaExe -ArgumentList "serve" -NoNewWindow -PassThru `
+        -RedirectStandardOutput $logOut -RedirectStandardError $logErr
     $ok = $false
-    for ($i = 0; $i -lt 30 -and -not $ok; $i++) {
+    for ($i = 0; $i -lt 90 -and -not $ok -and -not $proc.HasExited; $i++) {
         Start-Sleep -Seconds 1
-        try { Invoke-RestMethod "http://localhost:11434/api/version" -TimeoutSec 2 | Out-Null; $ok = $true } catch {}
+        try { Invoke-RestMethod "http://127.0.0.1:11434/api/version" -TimeoutSec 5 | Out-Null; $ok = $true } catch {}
     }
-    if (-not $ok) { throw "Le serveur Ollama ne répond pas après redémarrage (lancez 'ollama serve' à la main)." }
+    if (-not $ok) {
+        Write-Host "--- fin du journal d'Ollama ($logErr) ---" -ForegroundColor Yellow
+        if (Test-Path $logErr) { Get-Content $logErr -Tail 20 }
+        throw "Le serveur Ollama ne répond pas après redémarrage. Relancez l'application Ollama, ou lancez 'ollama serve' dans un autre terminal."
+    }
     Write-Host "Mode mémoire réduite : modèle $Model, serveur Ollama relancé avec réglages économes."
 }
 $env:OLLAMA_MODEL = $Model
