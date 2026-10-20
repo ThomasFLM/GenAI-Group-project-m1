@@ -130,14 +130,7 @@ docs/             data card, architecture, evaluation, defence plan
 tests/            unit tests + test XML fact sheets
 ```
 
-## Team
 
-| Name | Part of the project (and of the defence) |
-|-----|-------------------------|
-|     | Data: corpus, cleaning, data card |
-|     | Retrieval: chunking, hybrid index, reranking |
-|     | Generation & agent: prompts, structured output, guardrails, demo |
-|     | Evaluation: golden set, metrics, error analysis, risks |
 
 ## Contributing
 
