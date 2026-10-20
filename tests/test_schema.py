@@ -1,4 +1,4 @@
-"""Les fiches de test doivent respecter le schéma XSD officiel 3.5 (docs/schema/3.5)."""
+"""Test fact sheets must follow the official XSD schema 3.5 (docs/schema/3.5)."""
 from pathlib import Path
 
 import pytest

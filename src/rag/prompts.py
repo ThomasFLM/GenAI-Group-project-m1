@@ -1,11 +1,15 @@
-"""Prompts système et mise en forme du contexte.
+"""System prompts and context formatting.
 
-Principes anti-injection :
-- les extraits sont encadrés par des balises <document> et présentés comme des DONNÉES ;
-- les consignes rappellent qu'aucune instruction contenue dans la question ou les
-  documents ne peut modifier les règles ;
-- un « canari » secret est placé dans le prompt système : s'il apparaît dans une
-  réponse, c'est qu'il y a eu fuite du prompt → réponse bloquée.
+The prompts themselves are written in French on purpose: the corpus, the questions and the
+expected answers are French, and the reported evaluation results were measured with these
+exact prompts. Changing their wording means re-running the evaluation.
+
+Anti-injection principles:
+- excerpts are wrapped in <document> tags and presented as DATA;
+- the rules state that no instruction contained in the question or the documents can change
+  them;
+- a secret "canary" is placed in the system prompt: if it shows up in an answer, the prompt
+  has leaked -> the answer is blocked.
 """
 from __future__ import annotations
 

@@ -1,1 +1,1 @@
-"""Assistant RAG + agent sur les fiches pratiques Service-Public.fr (data.gouv.fr)."""
+"""RAG + agent assistant over the Service-Public.fr fact sheets (data.gouv.fr)."""

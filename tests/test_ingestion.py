@@ -14,8 +14,8 @@ def test_parse_fiche(docs):
     text = d.text
     assert "1 mois de loyer hors charges" in text
     assert "- 2 mois dans le cas contraire." in text
-    assert "Accueil particuliers" not in text  # fil d'Ariane ignoré
-    assert "Bail" not in text                 # « Voir aussi » ignoré
+    assert "Accueil particuliers" not in text  # breadcrumbs ignored
+    assert "Bail" not in text                 # "Voir aussi" ignored
     assert by_id["F0002"].url == "https://www.service-public.gouv.fr/particuliers/vosdroits/F0002"
 
 
@@ -39,7 +39,7 @@ def test_chunks_respect_sections(docs):
     for c in chunks:
         assert c.doc_id == "F0001" and c.chunk_id.startswith("F0001#")
     montant = next(c for c in chunks if c.section == "Montant")
-    # les cas d'un même chapitre sont regroupés, chacun garde son titre dans le texte
+    # cases of the same chapter are grouped, each one keeps its heading in the text
     assert "### Location vide\nLe montant du dépôt de garantie est limité à 1 mois" in montant.text
     assert montant.text.index("### Location meublée") < montant.text.index("2 mois")
     assert "Dépôt de garantie" in chunks[1].indexed_text
@@ -50,7 +50,7 @@ def test_split_section_sizes():
     pieces = split_section(text, max_words=80, overlap_words=10)
     assert len(pieces) > 1
     assert all(len(p.split()) <= 80 + 10 + 32 for p in pieces)
-    # recouvrement : les 10 derniers mots d'un passage sont repris au début du suivant
+    # overlap: the last 10 words of a chunk are repeated at the start of the next one
     assert pieces[1].split()[0] == "[…]"
     assert pieces[1].split()[1:11] == pieces[0].split()[-10:]
 
@@ -66,16 +66,16 @@ def test_pack_units_keeps_heading_with_text_and_repeats_it():
 def test_schema_35_table_condition_nested_list(docs):
     d = next(x for x in docs if x.doc_id == "F0003")
     text = d.text
-    # tableau linéarisé avec les en-têtes de colonnes (élément <Rangée>)
+    # table linearised with the column headers (<Rangée> element)
     assert "Demandeur : Majeur ; Prix : 86 €" in text
     assert "Demandeur : Mineur de 15 ans et plus ; Prix : 42 €" in text
     assert "Tarif selon l'âge" in text
-    # liste imbriquée conservée, service en ligne, condition et titre alternatif ignorés
+    # nested list kept; online service, condition and alternative title ignored
     assert "- Achat en ligne\n  - sur le site de l'ANTS" in text
     assert "Acheter un timbre" not in text and "majeur\"" not in text
     assert "Combien ça coûte" not in text
     assert any(s["heading"] == "Prix du timbre fiscal > Exemple" for s in d.sections)
-    # date de secours : attribut dateDerniereModificationImportante
+    # fallback date: dateDerniereModificationImportante attribute
     assert d.date == "2025-03-01"
 
 

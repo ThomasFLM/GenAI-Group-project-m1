@@ -1,4 +1,4 @@
-"""Recherche hybride : BM25 + dense, fusion RRF, reranking par cross-encoder, filtres de métadonnées."""
+"""Hybrid retrieval: BM25 + dense, RRF fusion, cross-encoder reranking, metadata filters."""
 from __future__ import annotations
 
 import json
@@ -16,19 +16,19 @@ from .text import tokenize
 
 # --------------------------------------------------------------------------- embedders
 class SentenceTransformerEmbedder:
-    """Embeddings denses (sentence-transformers). Gère les préfixes des modèles E5."""
+    """Dense embeddings (sentence-transformers). Handles the E5 model prefixes."""
 
     def __init__(self, model_name: str):
         from sentence_transformers import SentenceTransformer
 
         self.model_name = model_name
-        # Modèle affiné local (ex. models/e5-small-servicepublic) : chemin relatif à la racine du dépôt
+        # Local fine-tuned model (e.g. models/e5-small-servicepublic): path relative to the repo root
         local = ROOT / model_name
         self.model = SentenceTransformer(str(local) if local.is_dir() else model_name)
         self.is_e5 = "e5" in model_name.lower()
 
     def encode(self, texts: list[str], kind: str = "passage", batch_size: int | None = None) -> np.ndarray:
-        # EMBED_BATCH_SIZE plus petit = moins de RAM pendant l'indexation (mais plus lent)
+        # Smaller EMBED_BATCH_SIZE = less RAM during indexing (but slower)
         batch_size = batch_size or _env_int("EMBED_BATCH_SIZE", 32)
         if self.is_e5:
             texts = [f"{'query' if kind == 'query' else 'passage'}: {t}" for t in texts]
@@ -38,7 +38,7 @@ class SentenceTransformerEmbedder:
 
 
 class HashingEmbedder:
-    """Embedder sans dépendance (sac de mots haché). Sert aux tests et au mode hors-ligne."""
+    """Dependency-free embedder (hashed bag of words). Used by tests and offline mode."""
 
     model_name = "hashing-512"
 
@@ -49,7 +49,7 @@ class HashingEmbedder:
         out = np.zeros((len(texts), self.dim), dtype=np.float32)
         for i, t in enumerate(texts):
             for tok in tokenize(t):
-                out[i, zlib.crc32(tok.encode()) % self.dim] += 1.0  # hash stable entre processus
+                out[i, zlib.crc32(tok.encode()) % self.dim] += 1.0  # hash that is stable across processes
         norms = np.linalg.norm(out, axis=1, keepdims=True)
         return out / np.maximum(norms, 1e-9)
 
@@ -63,7 +63,7 @@ class CrossEncoderReranker:
         from sentence_transformers import CrossEncoder
 
         self.model_name = model_name
-        local = ROOT / model_name  # reranker affiné local (ex. models/mmarco-reranker-servicepublic)
+        local = ROOT / model_name  # local fine-tuned reranker (e.g. models/mmarco-reranker-servicepublic)
         self.model = CrossEncoder(str(local) if local.is_dir() else model_name, max_length=512)
 
     def score(self, query: str, texts: list[str]) -> list[float]:
@@ -99,7 +99,7 @@ def save_chunks(chunks: list[Chunk], path: Path = CHUNKS_PATH) -> None:
 
 
 def rrf_fuse(rankings: list[list[int]], k: int = 60) -> dict[int, float]:
-    """Reciprocal Rank Fusion : score(d) = Σ 1 / (k + rang)."""
+    """Reciprocal Rank Fusion: score(d) = Σ 1 / (k + rank)."""
     scores: dict[int, float] = {}
     for ranking in rankings:
         for rank, idx in enumerate(ranking, start=1):
@@ -123,15 +123,15 @@ class HybridRetriever:
         chunks = load_chunks(chunks_path)
         meta = json.loads((index_dir / "meta.json").read_text(encoding="utf-8"))
         if meta["chunk_ids"] != [c.chunk_id for c in chunks]:
-            raise RuntimeError("Index désynchronisé des chunks : relancez `python -m rag.cli index`.")
+            raise RuntimeError("Index out of sync with the chunks: rerun `python -m rag.cli index`.")
         if meta["embedding_model"] != settings.embedding_model:
-            print(f"[warn] index construit avec {meta['embedding_model']}, utilisation de ce modèle.")
+            print(f"[warn] index built with {meta['embedding_model']}, using that model.")
         embedder = make_embedder(meta["embedding_model"])
         embeddings = np.load(index_dir / "embeddings.npy")
         reranker = CrossEncoderReranker(settings.reranker_model) if settings.use_reranker else None
         return cls(chunks, embeddings, embedder, settings, reranker)
 
-    # -- composantes
+    # -- components
     def _allowed(self, since: str | None, theme: str | None) -> np.ndarray:
         mask = np.ones(len(self.chunks), dtype=bool)
         if since:
@@ -154,7 +154,7 @@ class HybridRetriever:
         order = np.argsort(-scores)[:n]
         return [int(i) for i in order if np.isfinite(scores[i])]
 
-    # -- API principale
+    # -- main API
     def search(self, query: str, k: int | None = None, since: str | None = None,
                theme: str | None = None, mode: str | None = None) -> list[RetrievedChunk]:
         k = k or self.settings.top_k

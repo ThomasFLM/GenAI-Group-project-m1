@@ -1,16 +1,17 @@
-"""Découpage des fiches en passages.
+"""Splitting fact sheets into chunks.
 
-Stratégie (justifiée dans docs/architecture.md) :
-- l'unité de regroupement est le **chapitre** (premier niveau de titre) : un passage ne
-  chevauche jamais deux chapitres ;
-- à l'intérieur d'un chapitre, les sous-sections (cas, situations, encadrés « À savoir »...)
-  sont regroupées jusqu'à ``max_words`` mots, et leur titre est **gardé dans le texte**
-  (« ### Location vide ») : le modèle sait à quel cas chaque phrase s'applique, sans
-  produire des miettes de quelques mots (les vraies fiches ont des dizaines de petits cas) ;
-- un sous-titre n'est jamais séparé de son premier paragraphe ; un passage qui commence
-  au milieu d'un cas reprend son titre « (suite) » ;
-- recouvrement de ``overlap_words`` mots entre passages consécutifs d'un même chapitre ;
-- chaque passage est indexé avec un en-tête contextuel « titre de la fiche — chapitre ».
+Strategy (justified in docs/architecture.md):
+- the grouping unit is the **chapter** (first heading level): a chunk never spans two
+  chapters;
+- inside a chapter, sub-sections (cases, situations, "À savoir" boxes...) are packed up to
+  ``max_words`` words and their heading is **kept in the text** ("### Location vide"): the
+  model knows which case each sentence applies to, without producing crumbs of a few words
+  (real fact sheets contain dozens of small cases);
+- a sub-heading is never separated from its first paragraph; a chunk that starts in the
+  middle of a case repeats its heading followed by "(suite)";
+- ``overlap_words`` words of overlap between consecutive chunks of the same chapter;
+- each chunk is indexed with a contextual header "fact sheet title — chapter".
+The markers written into the chunk text ("(suite)", "Résumé") are in French, like the corpus.
 """
 from __future__ import annotations
 
@@ -23,11 +24,11 @@ def _split_long(par: str, max_words: int) -> list[str]:
 
 
 def pack_units(units: list[tuple[str, str]], max_words: int, overlap_words: int) -> list[str]:
-    """Regroupe des unités (sous-titre, paragraphe) en passages d'au plus ~max_words mots.
+    """Pack (sub-heading, paragraph) units into chunks of at most ~max_words words.
 
-    Le sous-titre d'une unité est écrit une fois, au début du bloc qu'il introduit."""
-    # 1. paragraphes trop longs coupés, sous-titre rattaché au premier morceau
-    pieces: list[tuple[str, str, bool]] = []  # (sous-titre, texte, est_le_début_du_cas)
+    A unit's sub-heading is written once, at the start of the block it introduces."""
+    # 1. split paragraphs that are too long, the sub-heading stays with the first piece
+    pieces: list[tuple[str, str, bool]] = []  # (sub-heading, text, starts_the_case)
     last_sub = None
     for sub, par in units:
         parts = _split_long(par, max_words) if len(par.split()) > max_words else [par]
@@ -46,7 +47,7 @@ def pack_units(units: list[tuple[str, str]], max_words: int, overlap_words: int)
             body = " ".join(line for c in current for line in c.split("\n") if not line.startswith("### "))
             tail = " ".join(body.split()[-overlap_words:]) if overlap_words else ""
             current, count = [], 0
-            if sub and not starts_case:  # on reprend au milieu d'un cas : rappeler son titre
+            if sub and not starts_case:  # resuming in the middle of a case: repeat its heading
                 current.append(f"### {sub} (suite)")
                 count += len(sub.split()) + 1
             if tail:
@@ -60,13 +61,13 @@ def pack_units(units: list[tuple[str, str]], max_words: int, overlap_words: int)
 
 
 def split_section(text: str, max_words: int, overlap_words: int) -> list[str]:
-    """Découpe un texte brut (sans sous-titres) en passages."""
+    """Split raw text (without sub-headings) into chunks."""
     units = [("", p.rstrip()) for p in text.split("\n") if p.strip()]
     return pack_units(units, max_words, overlap_words)
 
 
 def _chapters(doc: Document) -> list[tuple[str, list[tuple[str, str]]]]:
-    """Regroupe les sections consécutives par chapitre (premier niveau du chemin de titres)."""
+    """Group consecutive sections by chapter (first level of the heading path)."""
     groups: list[tuple[str, list[tuple[str, str]]]] = []
     sections = list(doc.sections)
     if doc.description:

@@ -1,7 +1,7 @@
-"""Configuration centrale : chemins, modèles, hyperparamètres.
+"""Central configuration: paths, models, hyperparameters.
 
-Toutes les valeurs peuvent être surchargées par variables d'environnement (fichier .env).
-Chaque expérience de l'évaluation = un jeu de valeurs ici, ce qui rend les runs comparables.
+Every value can be overridden with an environment variable (.env file).
+Each evaluation experiment is one set of values here, which keeps runs comparable.
 """
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ try:
     from dotenv import load_dotenv
 
     load_dotenv()
-except ImportError:  # python-dotenv absent : on lit seulement l'environnement
+except ImportError:  # no python-dotenv: read the environment only
     pass
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -42,15 +42,15 @@ def _env_bool(name: str, default: bool) -> bool:
     return os.environ.get(name, "1" if default else "0").lower() in {"1", "true", "yes", "oui"}
 
 
-# Thèmes Service-Public retenus pour le sous-corpus (~500 fiches) : voir docs/data_card.md
+# Service-Public themes kept for the sub-corpus (~500 fact sheets): see docs/data_card.md
 DEFAULT_THEMES = [
     "Papiers - Citoyenneté - Élections",
     "Logement",
     "Transports - Mobilité",
 ]
 
-# Prix en $ par million de tokens (entrée, sortie). Modèles locaux : 0 $ d'API
-# (le coût réel est matériel/énergie, estimé à part dans le rapport).
+# Price in $ per million tokens (input, output). Local models: $0 of API cost
+# (the real cost is hardware/energy, estimated separately in the report).
 PRICING_PER_MTOK: dict[str, tuple[float, float]] = {
     "claude-opus-5-5": (4.00, 20.00),
     "claude-sonnet-5-5": (2.00, 10.00),
@@ -66,7 +66,7 @@ class Settings:
     themes: list[str] = field(default_factory=lambda: list(DEFAULT_THEMES))
     max_docs: int = field(default_factory=lambda: _env_int("MAX_DOCS", 500))
 
-    # Découpage
+    # Chunking
     chunk_max_words: int = field(default_factory=lambda: _env_int("CHUNK_MAX_WORDS", 220))
     chunk_overlap_words: int = field(default_factory=lambda: _env_int("CHUNK_OVERLAP_WORDS", 40))
 
@@ -79,10 +79,10 @@ class Settings:
     candidates_k: int = field(default_factory=lambda: _env_int("CANDIDATES_K", 30))
     top_k: int = field(default_factory=lambda: _env_int("TOP_K", 5))
     rrf_k: int = 60
-    # Seuil d'abstention sur le score du reranker (logit). À calibrer sur le split dev.
+    # Abstention threshold on the reranker score (logit). Calibrated on the dev split.
     min_rerank_score: float = field(default_factory=lambda: _env_float("MIN_RERANK_SCORE", -2.0))
 
-    # Génération
+    # Generation
     llm_backend: str = field(default_factory=lambda: _env("LLM_BACKEND", "ollama"))
     ollama_host: str = field(default_factory=lambda: _env("OLLAMA_HOST", "http://localhost:11434"))
     ollama_model: str = field(default_factory=lambda: _env("OLLAMA_MODEL", "qwen2.5:7b-instruct"))
@@ -94,10 +94,10 @@ class Settings:
     # Agent
     agent_max_steps: int = field(default_factory=lambda: _env_int("AGENT_MAX_STEPS", 4))
 
-    # Garde-fous
+    # Guardrails
     injection_policy: str = field(default_factory=lambda: _env("INJECTION_POLICY", "block"))  # block | warn
 
-    # Juge
+    # Judge
     judge_backend: str = field(default_factory=lambda: _env("JUDGE_BACKEND", "ollama"))
     judge_model: str = field(default_factory=lambda: _env("JUDGE_MODEL", "qwen2.5:7b-instruct"))
 

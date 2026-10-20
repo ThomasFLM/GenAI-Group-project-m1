@@ -1,9 +1,9 @@
-"""Clients LLM avec mesure systématique : tokens entrée/sortie, latence, raison d'arrêt, coût.
+"""LLM clients with systematic measurement: input/output tokens, latency, stop reason, cost.
 
-Format de messages neutre (converti pour chaque fournisseur) :
+Provider-neutral message format (converted for each provider):
   {"role": "user"|"assistant", "content": str, "tool_calls": [{"id", "name", "arguments"}]}
   {"role": "tool", "tool_call_id": str, "name": str, "content": str}
-Outils : liste de {"name", "description", "parameters" (JSON Schema)}.
+Tools: list of {"name", "description", "parameters" (JSON Schema)}.
 """
 from __future__ import annotations
 
@@ -41,7 +41,7 @@ class LLMError(RuntimeError):
 
 
 class OllamaClient:
-    """LLM local via l'API HTTP d'Ollama (https://github.com/ollama/ollama/blob/main/docs/api.md)."""
+    """Local LLM through the Ollama HTTP API (https://github.com/ollama/ollama/blob/main/docs/api.md)."""
 
     def __init__(self, model: str, host: str, temperature: float = 0.0, num_ctx: int = 8192,
                  max_output_tokens: int = 700, timeout: float = 300.0):
@@ -86,7 +86,7 @@ class OllamaClient:
             r = requests.post(f"{self.host}/api/chat", json=payload, timeout=self.timeout)
             r.raise_for_status()
         except requests.RequestException as e:
-            raise LLMError(f"Appel Ollama impossible ({self.host}, modèle {self.model}) : {e}") from e
+            raise LLMError(f"Ollama call failed ({self.host}, model {self.model}): {e}") from e
         latency = time.perf_counter() - t0
         data = r.json()
         msg = data.get("message", {})
@@ -112,7 +112,7 @@ class OllamaClient:
 
 
 class AnthropicClient:
-    """Modèle API (comparaison local vs API). Nécessite `uv sync --extra api` et ANTHROPIC_API_KEY."""
+    """API model (local vs API comparison). Requires `uv sync --extra api` and ANTHROPIC_API_KEY."""
 
     def __init__(self, model: str, max_output_tokens: int = 2000, effort: str = "low"):
         import anthropic
@@ -129,7 +129,7 @@ class AnthropicClient:
         for m in messages:
             if m["role"] == "tool":
                 block = {"type": "tool_result", "tool_use_id": m["tool_call_id"], "content": m["content"]}
-                # tous les résultats d'outils d'un même tour vont dans un seul message user
+                # all tool results of one turn go into a single user message
                 if out and out[-1]["role"] == "user" and isinstance(out[-1]["content"], list) \
                         and out[-1]["content"] and out[-1]["content"][0].get("type") == "tool_result":
                     out[-1]["content"].append(block)
@@ -155,7 +155,7 @@ class AnthropicClient:
             system=system,
             messages=self._convert(messages),
             output_config=output_config,
-            # repli automatique côté serveur si le modèle refuse (stop_reason "refusal")
+            # automatic server-side fallback if the model refuses (stop_reason "refusal")
             betas=["server-side-fallback-2026-07-01"],
             fallbacks="default",
         )
@@ -166,9 +166,9 @@ class AnthropicClient:
         try:
             resp = self.client.beta.messages.create(**kwargs)
         except self.anthropic.APIStatusError as e:
-            raise LLMError(f"Erreur API Anthropic ({e.status_code}) : {e.message}") from e
+            raise LLMError(f"Anthropic API error ({e.status_code}): {e.message}") from e
         except self.anthropic.APIConnectionError as e:
-            raise LLMError(f"Connexion API Anthropic impossible : {e}") from e
+            raise LLMError(f"Cannot connect to the Anthropic API: {e}") from e
         latency = time.perf_counter() - t0
         text = "".join(b.text for b in resp.content if b.type == "text")
         calls = [{"id": b.id, "name": b.name, "arguments": dict(b.input)}
@@ -187,19 +187,19 @@ def make_llm(settings: Settings, backend: str | None = None, model: str | None =
         return AnthropicClient(model or settings.anthropic_model)
     if backend == "extractive":
         return None
-    raise ValueError(f"Backend LLM inconnu : {backend}")
+    raise ValueError(f"Unknown LLM backend: {backend}")
 
 
 def parse_json_object(text: str) -> dict:
-    """Extrait le premier objet JSON d'une sortie de modèle (tolère du texte autour)."""
+    """Extract the first JSON object from a model output (tolerates surrounding text)."""
     text = text.strip()
     if text.startswith("```"):
         text = text.strip("`")
         text = text[text.find("{"):]
     start = text.find("{")
     if start < 0:
-        raise ValueError("aucun objet JSON dans la sortie")
+        raise ValueError("no JSON object in the output")
     obj, _ = json.JSONDecoder().raw_decode(text[start:])
     if not isinstance(obj, dict):
-        raise ValueError("la sortie JSON n'est pas un objet")
+        raise ValueError("the JSON output is not an object")
     return obj

@@ -7,7 +7,7 @@ from rag.schemas import INJECTION_REFUSAL_TEXT, REFUSAL_TEXT
 
 
 class FakeLLM:
-    """LLM scripté : renvoie les sorties fournies dans l'ordre et mémorise les appels."""
+    """Scripted LLM: returns the given outputs in order and records the calls."""
 
     model = "fake"
 
@@ -31,7 +31,7 @@ def test_rag_answer_with_citation(retriever):
     assert r.retrieved_doc_ids[0] == "F0002"
     assert r.tokens_in == 100 and r.tokens_out == 20 and r.stop_reason == "stop"
     assert [t.name for t in r.tool_calls] == ["search_corpus"]
-    # le contexte est balisé et la question encadrée
+    # the context is tagged and the question is wrapped
     user_msg = llm.calls[0]["messages"][0]["content"]
     assert '<document id="F0002"' in user_msg and "<question>" in user_msg
 

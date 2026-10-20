@@ -1,11 +1,12 @@
-"""Ingestion : téléchargement, parsing XML des fiches Service-Public, nettoyage, sélection.
+"""Ingestion: download, XML parsing of Service-Public fact sheets, cleaning, selection.
 
-Source officielle : archive ``vosdroits-latest.zip`` publiée par la DILA (jeu
-« Fiches pratiques et ressources de Service-Public.fr Particuliers » sur data.gouv.fr).
-Chaque fiche est un fichier XML ``F*.xml`` dont la racine est ``<Publication ID="F1234">``.
+Official source: the ``vosdroits-latest.zip`` archive published by DILA (dataset
+"Fiches pratiques et ressources de Service-Public.fr Particuliers" on data.gouv.fr).
+Each fact sheet is an XML file ``F*.xml`` whose root is ``<Publication ID="F1234">``.
+XML element names (Chapitre, Cas, Paragraphe...) are French: they come from the official schema.
 
-Source alternative : export Parquet « vectorisé » de la DINUM (Hugging Face). Seul le
-texte est réutilisé ; le découpage et les embeddings restent les nôtres.
+Alternative source: the DINUM "vectorised" Parquet export (Hugging Face). Only the text is
+reused; chunking and embeddings remain our own.
 """
 from __future__ import annotations
 
@@ -19,8 +20,8 @@ import xml.etree.ElementTree as ET
 
 from .schemas import Document
 
-# Éléments sans valeur pour répondre aux questions (cf. schéma XSD 3.5, Publication.xsd) :
-# navigation, liens, adresses, médias, logique de personnalisation (Condition), glossaire.
+# Elements with no value for answering questions (see XSD schema 3.5, Publication.xsd):
+# navigation, links, addresses, media, personalisation logic (Condition), glossary.
 SKIP_TAGS = {
     "FilDAriane", "Menu", "SousThemePere", "DossierPere", "SousDossier", "SousTheme", "Dossier", "Fiche",
     "FichePrecedente", "FicheSuivante", "RechercheGuidee", "RechercheGuideePere", "Questionnaire",
@@ -30,16 +31,16 @@ SKIP_TAGS = {
     "Cible", "SurTitre", "Condition", "TitreAlternatif", "Image", "Video", "Infographie",
     "ImageIllustration", "VideoIllustration", "Colonne", "Affichage",
 }
-# Blocs qui ouvrent une (sous-)section : leur Titre devient le chemin de section du passage
+# Blocks that open a (sub-)section: their Titre becomes the chunk's section path
 SECTION_TAGS = {"Chapitre", "SousChapitre", "Situation", "Cas", "ASavoir", "ANoter", "Attention",
                 "Exemple", "Rappel", "Consigne", "Complement", "Aide", "Introduction", "Avertissement",
                 "Conclusion"}
 CALLOUT_LABELS = {"ASavoir": "À savoir", "ANoter": "À noter", "Attention": "Attention",
                   "Avertissement": "Avertissement", "Exemple": "Exemple", "Rappel": "Rappel",
                   "Consigne": "Consigne", "Conclusion": "Conclusion"}
-# Types de publication retenus (attribut @type, éventuellement suffixé « conditionnée »).
-# Exclus : « Recherche guidée » (questionnaires arborescents, jusqu'à 850 000 mots),
-# « Fiche avec liens externes » (liens seuls), « Comment faire si » (agrégats), fiches redirigées.
+# Publication types kept (@type attribute, possibly suffixed with "conditionnée").
+# Excluded: "Recherche guidée" (decision-tree questionnaires, up to 850,000 words),
+# "Fiche avec liens externes" (links only), "Comment faire si" (aggregates), redirected sheets.
 KEEP_PUBLICATION_TYPES = ("Fiche d'information", "Fiche Question-réponse")
 
 _DC = "{http://purl.org/dc/elements/1.1/}"
@@ -50,19 +51,19 @@ def local(tag: str) -> str:
 
 
 def clean_text(text: str) -> str:
-    """Normalise espaces et caractères (NBSP, espaces fines, retours ligne multiples)."""
+    """Normalise whitespace and characters (NBSP, thin spaces, repeated newlines)."""
     text = unicodedata.normalize("NFC", text)
     text = text.replace("\u00a0", " ").replace("\u202f", " ").replace("\u2009", " ")
     text = re.sub(r"(?<=\S)[ \t]+", " ", text)
     text = re.sub(r" *\n", "\n", text)
-    text = re.sub(r"\n +(?! *- )", "\n", text)  # garde l'indentation des sous-listes « - »
+    text = re.sub(r"\n +(?! *- )", "\n", text)  # keep the indentation of nested "- " lists
     text = re.sub(r"\n{3,}", "\n\n", text)
     return text.strip()
 
 
 def _raw_inline(el: ET.Element) -> str:
-    """Concatène le texte d'un élément et de ses éléments inline, sans rien retirer :
-    les espaces sont parfois à l'intérieur des balises (« validité </MiseEnEvidence>de »)."""
+    """Concatenate the text of an element and of its inline children without stripping anything:
+    spaces are sometimes inside the tags ("validité </MiseEnEvidence>de")."""
     parts = [el.text or ""]
     for child in el:
         if local(child.tag) not in SKIP_TAGS:
@@ -72,8 +73,8 @@ def _raw_inline(el: ET.Element) -> str:
 
 
 def _inline_text(el: ET.Element) -> str:
-    """Texte d'un élément y compris ses éléments inline (liens, MiseEnEvidence, Exposant...).
-    Pas d'espace ajouté entre éléments : « 1<Exposant>er</Exposant> » -> « 1er »."""
+    """Text of an element including its inline children (links, MiseEnEvidence, Exposant...).
+    No space is added between elements: "1<Exposant>er</Exposant>" -> "1er"."""
     return clean_text(_raw_inline(el).replace("\n", " "))
 
 
@@ -85,7 +86,7 @@ def _title_of(el: ET.Element) -> str:
 
 
 def _list_lines(liste: ET.Element, depth: int = 0) -> list[str]:
-    """Linéarise une Liste (éventuellement imbriquée) en lignes à puces."""
+    """Linearise a (possibly nested) Liste into bullet lines."""
     lines = []
     for item in liste:
         if local(item.tag) != "Item":
@@ -112,14 +113,14 @@ def _cell_text(cell: ET.Element) -> str:
             parts.append(_inline_text(child))
         elif tag == "Liste":
             parts.extend(line.strip("- ") for line in _list_lines(child))
-    if not parts:  # cellule « mixte » avec du texte direct
+    if not parts:  # "mixed" cell with direct text
         parts.append(_inline_text(cell))
     return " ; ".join(p for p in parts if p)
 
 
 def _table_lines(table: ET.Element) -> list[str]:
-    """Linéarise un Tableau. Si une rangée d'en-tête existe, chaque ligne devient
-    « En-tête 1 : valeur ; En-tête 2 : valeur », ce qui garde le lien montant ↔ situation."""
+    """Linearise a Tableau. If a header row exists, each row becomes
+    "Header 1 : value ; Header 2 : value", which keeps the amount <-> situation link."""
     lines = []
     for child in table:
         if local(child.tag) in {"TitreRiche", "Resume"}:
@@ -150,7 +151,7 @@ def _walk(el: ET.Element, path: list[str], sections: list[dict[str, str]], buf: 
         title = _title_of(el) or CALLOUT_LABELS.get(tag, "")
         new_path = path + [title] if title and tag not in {"Introduction", "Aide"} else path
         for child in el:
-            if local(child.tag) in {"Titre", "TitreRiche"}:  # TitreRiche : doublon du titre dans les Cas
+            if local(child.tag) in {"Titre", "TitreRiche"}:  # TitreRiche: duplicate of the title inside Cas
                 continue
             _walk(child, new_path, sections, buf)
         _flush(new_path, sections, buf)
@@ -183,7 +184,7 @@ def _parse_date(raw: str) -> str:
 
 
 def parse_fiche_xml(xml_bytes: bytes) -> Document | None:
-    """Parse une fiche XML Service-Public. Renvoie None si ce n'est pas une fiche exploitable."""
+    """Parse a Service-Public XML fact sheet. Returns None if it is not a usable fact sheet."""
     try:
         root = ET.fromstring(xml_bytes)
     except ET.ParseError:
@@ -238,7 +239,7 @@ def parse_fiche_xml(xml_bytes: bytes) -> Document | None:
 
 
 def iter_xml_sources(source: Path) -> Iterator[tuple[str, bytes]]:
-    """Itère sur (nom, contenu) des XML d'une archive zip ou d'un dossier."""
+    """Iterate over (name, content) of the XML files of a zip archive or a directory."""
     if source.is_dir():
         for p in sorted(source.rglob("*.xml")):
             yield p.name, p.read_bytes()
@@ -248,11 +249,11 @@ def iter_xml_sources(source: Path) -> Iterator[tuple[str, bytes]]:
                 if name.endswith(".xml"):
                     yield Path(name).name, zf.read(name)
     else:
-        raise ValueError(f"Source non reconnue : {source}")
+        raise ValueError(f"Unrecognised source: {source}")
 
 
 def load_fiches(source: Path, prefix: str = "F") -> list[Document]:
-    """Charge les fiches d'information (fichiers F*.xml) d'une archive ou d'un dossier."""
+    """Load the fact sheets (F*.xml files) of an archive or a directory."""
     docs = []
     for name, content in iter_xml_sources(source):
         if not re.fullmatch(rf"{prefix}\d+\.xml", name):
@@ -263,7 +264,7 @@ def load_fiches(source: Path, prefix: str = "F") -> list[Document]:
     return docs
 
 
-# Noms de colonnes possibles dans les exports Parquet « vectorisés »
+# Possible column names in the "vectorised" Parquet exports
 _PARQUET_COLS = {
     "doc_id": ["sid", "doc_id", "id", "fiche_id"],
     "title": ["title", "titre"],
@@ -277,7 +278,7 @@ _PARQUET_COLS = {
 
 
 def load_parquet(path: Path) -> list[Document]:
-    """Reconstruit des documents à partir d'un export Parquet (un ou plusieurs chunks par fiche)."""
+    """Rebuild documents from a Parquet export (one or more chunks per fact sheet)."""
     import pyarrow.parquet as pq
 
     table = pq.read_table(path).to_pylist()
@@ -290,7 +291,7 @@ def load_parquet(path: Path) -> list[Document]:
 
     c = {k: pick(k) for k in _PARQUET_COLS}
     if not c["doc_id"] or not c["text"]:
-        raise ValueError(f"Colonnes introuvables dans {path} : {sorted(cols)}")
+        raise ValueError(f"Columns not found in {path}: {sorted(cols)}")
     grouped: dict[str, list[dict]] = {}
     for row in table:
         grouped.setdefault(str(row[c["doc_id"]]), []).append(row)
@@ -302,7 +303,7 @@ def load_parquet(path: Path) -> list[Document]:
         texts = []
         for r in rows:
             t = clean_text(str(r[c["text"]] or ""))
-            if t and t not in texts:  # les exports chunkés ont souvent du recouvrement
+            if t and t not in texts:  # chunked exports often overlap
                 texts.append(t)
         docs.append(Document(
             doc_id=doc_id,
@@ -323,12 +324,12 @@ def _norm(s: str) -> str:
 
 def select_documents(docs: Iterable[Document], themes: list[str], max_docs: int,
                      must_include: set[str] | None = None) -> list[Document]:
-    """Sélection déterministe d'un sous-corpus cohérent.
+    """Deterministic selection of a coherent sub-corpus.
 
-    1. garde les fiches dont le thème correspond à un des thèmes demandés ;
-    2. force l'inclusion des documents du golden set (``must_include``) ;
-    3. complète jusqu'à ``max_docs`` en répartissant équitablement entre thèmes,
-       par ordre d'identifiant (reproductible).
+    1. keep the fact sheets whose theme matches one of the requested themes;
+    2. force the inclusion of the golden-set documents (``must_include``);
+    3. fill up to ``max_docs`` by spreading evenly across themes, in identifier
+       order (reproducible).
     """
     must_include = must_include or set()
     wanted = [_norm(t) for t in themes]
@@ -343,7 +344,7 @@ def select_documents(docs: Iterable[Document], themes: list[str], max_docs: int,
             if w and w in nt:
                 buckets[w].append(d)
                 break
-    # tourniquet entre thèmes pour un corpus équilibré
+    # round-robin across themes for a balanced corpus
     iters = [iter(b) for b in buckets.values()]
     while len(selected) < max_docs and iters:
         alive = []

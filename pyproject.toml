@@ -1,7 +1,7 @@
 [project]
 name = "datagouv-rag"
 version = "0.1.0"
-description = "Assistant RAG + agent sur les fiches pratiques Service-Public.fr (data.gouv.fr), évalué sur un golden set"
+description = "RAG + agent assistant over the Service-Public.fr fact sheets (data.gouv.fr), evaluated on a golden set"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
