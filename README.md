@@ -1,135 +1,144 @@
-# Assistant RAG & agent sur les fiches Service-Public.fr
+# RAG & agent assistant over the Service-Public.fr fact sheets
 
-Assistant qui répond à des questions de particuliers (papiers, logement, transports) **uniquement** à partir
-d'environ 500 fiches pratiques officielles publiées sur data.gouv.fr, en **citant ses sources**, en
-**s'abstenant** (« je ne sais pas ») quand l'information n'est pas dans le corpus et en **résistant aux
-injections de prompt**. Tout tourne en local (LLM via Ollama). Chaque réponse est instrumentée
-(tokens, latence, appels d'outils, coût, raison d'arrêt) et le système est évalué sur un golden set de
+An assistant that answers questions from private individuals (identity papers, housing, transport)
+**only** from about 500 official fact sheets published on data.gouv.fr. It **cites its sources**,
+**abstains** ("je ne sais pas" — I don't know) when the information is not in the corpus, and **resists
+prompt injection**. Everything runs locally (LLM through Ollama). Every answer is instrumented
+(tokens, latency, tool calls, cost, stop reason) and the system is evaluated on a golden set of
 42 questions.
 
-- Rendu : **20 octobre 2026, 23:59** (tag git `v1.0`) · Soutenance : **21 octobre 2026** (10 min + 5 min de questions)
+- Submission: **20 October 2026, 23:59** (git tag `v1.0`) · Defence: **21 October 2026** (10 min + 5 min Q&A)
+
+The corpus, the questions and the assistant's answers are in **French**; code and documentation are in
+English. The LLM prompts are kept in French on purpose (see `src/rag/prompts.py`): the reported results
+were measured with them.
 
 ## Architecture
 
 ```
-question ─► garde-fou entrée (injection ?) ─► recherche hybride ─────────────► génération structurée ─► garde-fous sortie ─► réponse + sources
-                                               BM25 (top 30)  ┐                 LLM local (Ollama)         JSON validé (pydantic)
-                                               dense E5 (30)  ┴► RRF ─► rerank   JSON {answerable,          citations ⊂ documents récupérés
-                                               filtres : date, thème  cross-     answer, citations}         canari anti-fuite du prompt
-                                                                      encoder    seuil d'abstention         1 nouvel essai si invalide
-mode agent : le LLM appelle lui-même les outils search_corpus / get_document / add_days (≤ 4 étapes)
+question ─► input guardrail (injection?) ─► hybrid search ───────────────────► structured generation ─► output guardrails ─► answer + sources
+                                             BM25 (top 30)  ┐                   local LLM (Ollama)         JSON validated (pydantic)
+                                             dense E5 (30)  ┴► RRF ─► rerank     JSON {answerable,          citations ⊂ retrieved documents
+                                             filters: date, theme    cross-      answer, citations}         prompt-leak canary
+                                                                     encoder     abstention threshold       1 retry if invalid
+agent mode: the LLM calls the search_corpus / get_document / add_days tools itself (≤ 4 steps)
 ```
 
-Détails et justification des choix : [docs/architecture.md](docs/architecture.md).
-Corpus : [docs/data_card.md](docs/data_card.md). Protocole d'évaluation : [docs/evaluation.md](docs/evaluation.md).
-Soutenance : [docs/soutenance.md](docs/soutenance.md).
+Design details and rationale: [docs/architecture.md](docs/architecture.md).
+Corpus: [docs/data_card.md](docs/data_card.md). Evaluation protocol and results: [docs/evaluation.md](docs/evaluation.md).
+Defence plan: [docs/defense.md](docs/defense.md).
 
-## Modèles utilisés (noms et versions exacts)
+## Models used (exact names and versions)
 
-| Rôle | Modèle par défaut (run final) | Version exacte | Alternative testée |
+| Role | Default model (final run) | Exact version | Alternative tested |
 |---|---|---|---|
-| LLM de génération (local) | `qwen2.5:7b-instruct` (Ollama) | digest `845dbda0ea48` | `qwen2.5:3b-instruct` (`357c53fb659c`, E6) |
-| LLM juge (évaluation) | `qwen2.5:7b-instruct` (Ollama) | digest `845dbda0ea48` | — |
-| Embeddings | `intfloat/multilingual-e5-small` | révision HF `614241f6` | version affinée sur le corpus (E9) |
-| Reranker | `cross-encoder/mmarco-mMiniLMv2-L12-H384-v1` | révision HF `1427fd65` | version affinée sur le corpus (E9) |
-| LLM API (comparaison, optionnel) | `claude-opus-5-5` (Anthropic) | — | non évalué (pas de clé API) |
+| Generation LLM (local) | `qwen2.5:7b-instruct` (Ollama) | digest `845dbda0ea48` | `qwen2.5:3b-instruct` (`357c53fb659c`, E6) |
+| Judge LLM (evaluation) | `qwen2.5:7b-instruct` (Ollama) | digest `845dbda0ea48` | — |
+| Embeddings | `intfloat/multilingual-e5-small` | HF revision `614241f6` | version fine-tuned on the corpus (E9) |
+| Reranker | `cross-encoder/mmarco-mMiniLMv2-L12-H384-v1` | HF revision `1427fd65` | version fine-tuned on the corpus (E9) |
+| API LLM (comparison, optional) | `claude-opus-5-5` (Anthropic) | — | not evaluated (no API key) |
 
-Run final : Ollama **0.40.4**, PyTorch 2.14.1, sentence-transformers 6.1.0, sur un portable Windows 11
-(16 Go de RAM, NVIDIA RTX 3060 Laptop 6 Go). Tout fonctionne aussi sans GPU, en plus lent
-(`scripts/run_all.ps1 -LowMemory` : environ 8 Go de RAM, `qwen2.5:3b-instruct`).
+Final run: Ollama **0.40.4**, PyTorch 2.14.1, sentence-transformers 6.1.0, on a Windows 11 laptop
+(16 GB RAM, NVIDIA RTX 3060 Laptop 6 GB). Everything also works without a GPU, more slowly
+(`scripts/run_all.ps1 -LowMemory`: about 8 GB of RAM, `qwen2.5:3b-instruct`).
 
 ## Installation
 
 ```bash
-git clone <url-du-repo> && cd GenAI-Group-project-m1
-uv sync                       # installe les dépendances (uv.lock)
-cp .env.example .env          # puis adapter si besoin
-# LLM local
+git clone <repo-url> && cd GenAI-Group-project-m1
+uv sync                       # install the dependencies (uv.lock)
+cp .env.example .env          # then adapt if needed
+# local LLM
 ollama pull qwen2.5:7b-instruct
 ```
 
-Options : `uv sync --extra api` (comparaison avec un modèle API, nécessite `ANTHROPIC_API_KEY` dans `.env`),
-`uv sync --extra ui` (interface Streamlit).
+Options: `uv sync --extra api` (comparison with an API model, needs `ANTHROPIC_API_KEY` in `.env`),
+`uv sync --extra ui` (Streamlit interface).
 
-## Utilisation
+On Windows, `powershell -ExecutionPolicy Bypass -File scripts\run_all.ps1` runs the whole pipeline
+(checks, corpus, index, main evaluation, comparison experiments).
+
+## Usage
 
 ```bash
-# 1. Données : télécharger l'archive XML officielle (ou la déposer à la main dans data/raw/)
+# 1. Data: download the official XML archive (or drop it by hand into data/raw/)
 uv run python -m rag.cli download
-# 2. Sélectionner ~500 fiches (thèmes Papiers, Logement, Transports) et les nettoyer
+# 2. Select ~500 fact sheets (themes: identity papers, housing, transport) and clean them
 uv run python -m rag.cli build-corpus --source data/raw/vosdroits-latest.zip
-# 3. Statistiques pour la data card + 20 documents / 20 passages tirés au hasard à lire
+# 3. Statistics for the data card + 20 documents / 20 chunks drawn at random to read
 uv run python -m rag.cli stats
-# 4. Découpage + index (embeddings)
+# 4. Chunking + index (embeddings)
 uv run python -m rag.cli index
-# 5. Poser une question
+# 5. Ask a question (in French)
 uv run python -m rag.cli ask "Quel est le délai pour contester une amende forfaitaire ?"
 uv run python -m rag.cli ask "J'ai reçu un avis de contravention le 1er septembre 2026, jusqu'à quand le contester ?" --mode agent -v
-# 6. Évaluation complète
+# 6. Full evaluation
 uv run python eval/run_eval.py --questions eval/golden.jsonl --out eval/
 # Interface (bonus)
 uv run --extra ui streamlit run app/streamlit_app.py
 ```
 
-`eval/run_eval.py` écrit `eval/results.jsonl` (par question : réponse, sources citées, documents récupérés,
-tokens in/out, latence, appels d'outils, raison d'arrêt), `eval/scores.jsonl`, `eval/metrics.json` et
-`eval/report.md` (tableau de bord + analyse d'erreurs). Expériences : `--mode agent`, `--retrieval bm25|dense|hybrid`,
-`--no-rerank`, `--top-k 3`, `--backend anthropic`, `--model llama3.2:3b`, `--split dev|test`, `--tag nom`
-(sortie dans `eval/<nom>/`).
+`eval/run_eval.py` writes `eval/results.jsonl` (per question: answer, cited sources, retrieved documents,
+tokens in/out, latency, tool calls, stop reason), `eval/scores.jsonl`, `eval/metrics.json` and
+`eval/report.md` (dashboard + error analysis). Experiments: `--mode agent`, `--retrieval bm25|dense|hybrid`,
+`--no-rerank`, `--top-k 3`, `--backend anthropic`, `--model llama3.2:3b`, `--split dev|test`, `--tag name`
+(output in `eval/<name>/`).
 
-Annotation du golden set : `uv run python -m rag.cli suggest-gold` propose les fiches candidates pour chaque
-question ; on vérifie dans la fiche, on remplit `gold_docs` et on retire `gold_status`, puis on relance
-`build-corpus` (qui force l'inclusion des fiches du golden set) et `index`.
+Golden-set annotation: `uv run python -m rag.cli suggest-gold` suggests candidate fact sheets for each
+question; check the fact sheet, fill in `gold_docs` and remove `gold_status`, then rerun `build-corpus`
+(which forces the inclusion of the golden-set fact sheets) and `index`.
 
-Tests : `uv run pytest` (sans réseau ni GPU : embedder haché et LLM simulé).
+Tests: `uv run pytest` (no network or GPU needed: hashed embedder and simulated LLM).
 
-### GPU NVIDIA (optionnel)
+### NVIDIA GPU (optional)
 
-`uv sync` installe PyTorch CPU. Pour utiliser une carte NVIDIA (embeddings, reranker, affinage ~10× plus rapides) :
-`uv pip install torch==2.14.1 --torch-backend cu130`, puis lancer les commandes avec `UV_NO_SYNC=1`
-(sinon `uv run` réinstalle la version CPU). Ollama utilise le GPU de lui-même.
+`uv sync` installs the CPU build of PyTorch. To use an NVIDIA card (embeddings, reranker and fine-tuning
+~10× faster): `uv pip install torch==2.14.1 --torch-backend cu130`, then run the commands with `UV_NO_SYNC=1`
+(otherwise `uv run` reinstalls the CPU build). Ollama uses the GPU on its own.
 
-### Affinage des modèles de recherche (expérience E9, hors configuration par défaut)
+### Fine-tuning the retrieval models (experiment E9, not part of the default configuration)
 
 ```bash
 uv sync --extra train
-uv run python -m rag.cli gen-queries --n-chunks 4000 --workers 4   # questions synthétiques (déjà dans data/train/)
+uv run python -m rag.cli gen-queries --n-chunks 4000 --workers 4   # synthetic questions (already in data/train/)
 uv run python -m rag.cli finetune                                   # -> models/e5-small-servicepublic
 uv run python -m rag.cli finetune-reranker                          # -> models/mmarco-reranker-servicepublic
 ```
 
-Les questions synthétiques trop proches du golden set sont retirées, et la validation se fait sur des fiches
-tenues à l'écart. Résultats et décision (non retenu par défaut) : [docs/evaluation.md](docs/evaluation.md#e9--affinage-des-modèles-de-recherche).
+Synthetic questions too close to the golden set are removed, and validation uses held-out fact sheets.
+Results and decision (not kept by default): [docs/evaluation.md](docs/evaluation.md#e9-fine-tuning-the-retrieval-models).
 
-## Structure
+## Layout
 
 ```
 src/rag/
-  config.py       paramètres (surchargeables via .env) et tarifs
-  ingestion.py    téléchargement, parsing XML, nettoyage, sélection du sous-corpus
-  chunking.py     découpage par section avec recouvrement
-  retrieval.py    BM25, dense, fusion RRF, reranking, filtres de métadonnées, index
-  llm.py          clients Ollama / Anthropic, mesure tokens·latence·coût·stop reason
-  prompts.py      prompts système, balisage du contexte, prompt du juge
-  guardrails.py   détection d'injection, validation de sortie, canari
-  pipeline.py     Assistant : mode RAG et mode agent (outils), trace complète
-  evaluation.py   métriques, taxonomie d'erreurs, rapport
-  cli.py          ligne de commande
+  config.py       settings (overridable through .env) and prices
+  ingestion.py    download, XML parsing, cleaning, sub-corpus selection
+  chunking.py     section-aware chunking with overlap
+  retrieval.py    BM25, dense, RRF fusion, reranking, metadata filters, index
+  llm.py          Ollama / Anthropic clients, tokens·latency·cost·stop-reason measurement
+  prompts.py      system prompts, context tagging, judge prompt
+  guardrails.py   injection detection, output validation, canary
+  pipeline.py     Assistant: RAG mode and agent mode (tools), full trace
+  evaluation.py   metrics, error taxonomy, report
+  finetune.py     synthetic questions, embedding and reranker fine-tuning (E9)
+  cli.py          command line
 eval/golden.jsonl, eval/run_eval.py
 app/streamlit_app.py
-docs/             data card, architecture, évaluation, soutenance
-tests/            tests unitaires + fiches XML de test
+scripts/run_all.ps1
+docs/             data card, architecture, evaluation, defence plan
+tests/            unit tests + test XML fact sheets
 ```
 
-## Équipe
+## Team
 
-| Nom | Partie du projet (et de la soutenance) |
+| Name | Part of the project (and of the defence) |
 |-----|-------------------------|
-|     | Données : corpus, nettoyage, data card |
-|     | Retrieval : découpage, index hybride, reranking |
-|     | Génération & agent : prompts, sortie structurée, garde-fous, démo |
-|     | Évaluation : golden set, métriques, analyse d'erreurs, risques |
+|     | Data: corpus, cleaning, data card |
+|     | Retrieval: chunking, hybrid index, reranking |
+|     | Generation & agent: prompts, structured output, guardrails, demo |
+|     | Evaluation: golden set, metrics, error analysis, risks |
 
-## Contribuer
+## Contributing
 
-Voir [CONTRIBUTING.md](CONTRIBUTING.md). Ne jamais commiter de clé d'API : `.env` est ignoré par git.
+See [CONTRIBUTING.md](CONTRIBUTING.md). Never commit an API key: `.env` is ignored by git.

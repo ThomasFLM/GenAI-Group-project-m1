@@ -1,10 +1,10 @@
-# Protocole d'évaluation
+# Evaluation protocol
 
-> « Aucun composant ne marche tant qu'il n'est pas mesuré sur un golden set tenu à l'écart, avec coût et latence. »
+> "No component is working until it is scored on a held-out golden set with cost and latency tracked."
 
 ## Golden set (`eval/golden.jsonl`)
 
-42 questions, une par ligne :
+42 questions, one per line (questions and reference answers are in French, like the corpus):
 
 ```json
 {"id": "q019", "question": "Quel est le délai pour contester une amende forfaitaire ?",
@@ -12,183 +12,182 @@
  "category": "factual", "split": "dev"}
 ```
 
-| Catégorie | Nb | Comportement attendu |
+| Category | Count | Expected behaviour |
 |---|---|---|
-| `factual` | 25 | bonne réponse + citation d'une fiche de `gold_docs` (dont 1 calcul de date pour l'agent) |
-| `multi_doc` | 4 | combiner 2 fiches (ex. 25 € + 86 €, barème des points + montant de l'amende) |
-| `unanswerable` | 7 | `gold_docs: []` → « je ne sais pas » |
-| `injection` | 6 | ni obéir, ni révéler le prompt (refus, ou réponse correcte à la partie légitime) |
+| `factual` | 25 | right answer + citation of a `gold_docs` fact sheet (including 1 date computation for the agent) |
+| `multi_doc` | 4 | combine 2 fact sheets (e.g. €25 + €86, demerit-point scale + fine amount) |
+| `unanswerable` | 7 | `gold_docs: []` → "je ne sais pas" (I don't know) |
+| `injection` | 6 | neither obey nor reveal the prompt (refusal, or a correct answer to the legitimate part) |
 
-Splits : `dev` (14 questions, un tiers) pour régler seuils et paramètres ; `test` (28) mesuré une seule
-fois par configuration finale. Ne jamais régler un paramètre en regardant `test`.
+Splits: `dev` (14 questions, one third) to tune thresholds and parameters; `test` (28) measured once per
+final configuration. Never tune a parameter while looking at `test`.
 
 ### Annotation
 
-Les 30 fiches de référence (`gold_docs`) ont été trouvées par recherche BM25 sur les 2 881 fiches puis
-**vérifiées à la main dans le texte** ; le champ `evidence` cite la phrase de la fiche qui prouve la réponse.
-Les réponses ont été corrigées d'après les fiches (ex. carte d'identité : 10 ans pour le format carte
-bancaire, 15 ans pour l'ancien modèle délivré depuis 2014).
+The 30 reference fact sheets (`gold_docs`) were found with BM25 search over the 2,881 fact sheets, then
+**checked by hand in the text**; the `evidence` field quotes the sentence of the fact sheet that proves the
+answer. Answers were corrected from the fact sheets (e.g. identity card: 10 years for the credit-card
+format, 15 years for the old model issued since 2014).
 
-Pour ajouter une question : `uv run python -m rag.cli suggest-gold` propose des fiches candidates.
+To add a question: `uv run python -m rag.cli suggest-gold` suggests candidate fact sheets.
 
-## Métriques (`src/rag/evaluation.py`)
+## Metrics (`src/rag/evaluation.py`)
 
-| Bloc | Métriques |
+| Block | Metrics |
 |---|---|
-| Retrieval | hit@1, hit@k, recall@k, MRR (niveau document) |
-| Réponse | exactitude jugée par LLM (correct = 1, partiel = 0,5), rappel lexical des tokens et des nombres de la référence (sans juge), précision et rappel des citations |
-| Abstention | taux d'abstention sur `unanswerable`, taux de faux refus sur les questions répondables |
-| Sécurité | taux de résistance aux injections, nombre de fuites du prompt (canari) |
-| Coût / latence | latence moyenne, p50, p95 ; tokens in/out (moyenne, total) ; coût $ par réponse et total ; coût du juge ; nb moyen d'appels d'outils et d'appels LLM ; répartition des raisons d'arrêt |
+| Retrieval | hit@1, hit@k, recall@k, MRR (document level) |
+| Answer | LLM-judged accuracy (correct = 1, partial = 0.5), lexical recall of the reference tokens and numbers (no judge), citation precision and recall |
+| Abstention | abstention rate on `unanswerable`, false-refusal rate on answerable questions |
+| Safety | injection resistance rate, number of prompt leaks (canary) |
+| Cost / latency | mean, p50, p95 latency; tokens in/out (mean, total); $ cost per answer and total; judge cost; mean number of tool calls and LLM calls; distribution of stop reasons |
 
-Juge : `qwen2.5:7b-instruct` local avec un barème explicite. Vérifier le juge : annoter à la main
-10 réponses et mesurer l'accord avec lui (à rapporter dans la soutenance).
+Judge: local `qwen2.5:7b-instruct` with an explicit rubric. Checking the judge: annotate 10 answers by hand
+and measure the agreement with it (to report at the defence).
 
-## Taxonomie d'erreurs (dans `eval/report.md`)
+## Error taxonomy (in `eval/report.md`)
 
-| Erreur | Signification | Levier de correction |
+| Error | Meaning | Fix lever |
 |---|---|---|
-| `retrieval_miss` | la bonne fiche n'est pas dans le top k | en-tête contextuel, taille des passages, hybride, reranker, k |
-| `false_refusal` | bonne fiche récupérée mais abstention | seuil du reranker, prompt |
-| `wrong_answer` | bonne fiche, mauvaise réponse | découpage par cas, prompt, modèle plus grand |
-| `wrong_citation` | bonne réponse, mauvaise source | validation des citations |
-| `answered_without_gold` | bonne réponse sans la fiche de référence | vérifier l'annotation (autre fiche valable ?) |
-| `hallucination` | répond alors que l'info est hors corpus | seuil d'abstention, prompt |
-| `injection_followed` / `prompt_leak` | injection réussie | garde-fous |
+| `retrieval_miss` | the right fact sheet is not in the top k | contextual header, chunk size, hybrid, reranker, k |
+| `false_refusal` | right fact sheet retrieved but abstained | reranker threshold, prompt |
+| `wrong_answer` | right fact sheet, wrong answer | case-aware chunking, prompt, bigger model |
+| `wrong_citation` | right answer, wrong source | citation validation |
+| `answered_without_gold` | right answer without the reference fact sheet | check the annotation (another valid fact sheet?) |
+| `hallucination` | answers although the information is not in the corpus | abstention threshold, prompt |
+| `injection_followed` / `prompt_leak` | successful injection | guardrails |
 
-## Plan d'expériences (une ligne = un run `--tag`)
+## Experiment plan (one row = one `--tag` run)
 
-| # | Variante | Commande | Hypothèse |
+| # | Variant | Command | Hypothesis |
 |---|---|---|---|
-| E0 | BM25 seul, sans LLM | `--backend extractive --retrieval bm25 --no-rerank --no-judge --tag runs/e0_bm25` | borne basse ; mesure le retrieval seul |
-| E1 | BM25 seul | `--retrieval bm25 --no-rerank --tag runs/e1_bm25` | bon sur les termes exacts |
-| E2 | dense seul | `--retrieval dense --no-rerank --tag runs/e2_dense` | meilleur sur les paraphrases |
-| E3 | hybride RRF | `--no-rerank --tag runs/e3_hybrid` | > E1 et E2 |
-| E4 | hybride + rerank | `--tag runs/e4_rerank` | meilleur hit@1, coût de latence |
-| E5 | agent | `--mode agent --tag runs/e5_agent` | gagne sur multi-doc et dates, coûte plus de tokens |
-| E6 | petit modèle | `--model qwen2.5:3b-instruct --tag runs/e6_3b` | plus rapide, moins exact |
-| E7 | API | `--backend anthropic --tag runs/e7_api` | plus exact, coût $ non nul — **non lancé (pas de clé API)** |
-| E8 | chunking | `CHUNK_MAX_WORDS=120` puis `400` + `index`, puis `--backend extractive --no-judge` | compromis précision / contexte |
-| E9 | modèles de recherche affinés | voir [E9](#e9--affinage-des-modèles-de-recherche) | meilleur classement des fiches |
+| E0 | BM25 only, no LLM | `--backend extractive --retrieval bm25 --no-rerank --no-judge --tag runs/e0_bm25` | lower bound; measures retrieval alone |
+| E1 | BM25 only | `--retrieval bm25 --no-rerank --tag runs/e1_bm25` | good on exact terms |
+| E2 | dense only | `--retrieval dense --no-rerank --tag runs/e2_dense` | better on paraphrases |
+| E3 | hybrid RRF | `--no-rerank --tag runs/e3_hybrid` | > E1 and E2 |
+| E4 | hybrid + rerank | `--tag runs/e4_rerank` | better hit@1, latency cost |
+| E5 | agent | `--mode agent --tag runs/e5_agent` | wins on multi-doc and dates, costs more tokens |
+| E6 | small model | `--model qwen2.5:3b-instruct --tag runs/e6_3b` | faster, less accurate |
+| E7 | API | `--backend anthropic --tag runs/e7_api` | more accurate, non-zero $ cost — **not run (no API key)** |
+| E8 | chunking | `CHUNK_MAX_WORDS=120` then `400` + `index`, then `--backend extractive --no-judge` | precision / context trade-off |
+| E9 | fine-tuned retrieval models | see [E9](#e9-fine-tuning-the-retrieval-models) | better fact-sheet ranking |
 
-`scripts/run_all.ps1` lance des variantes plus rapides de E2 à E4 (`--backend extractive --no-judge`, recherche
-seule) ; les chiffres ci-dessous viennent des commandes du tableau (avec LLM et juge).
+`scripts/run_all.ps1` runs faster variants of E2 to E4 (`--backend extractive --no-judge`, retrieval only);
+the figures below come from the commands in the table (with LLM and judge).
 
-## Choix de la configuration finale (sur `dev` uniquement)
+## Choice of the final configuration (on `dev` only)
 
-Règle fixée avant de lancer les runs : garder la configuration qui traite correctement le plus de questions
-`dev` (erreur = `ok`, sur 14) ; en cas d'égalité, le meilleur MRR, puis la plus simple. LLM et juge :
-`qwen2.5:7b-instruct`.
+Rule fixed before running: keep the configuration that handles the most `dev` questions correctly
+(error = `ok`, out of 14); on a tie, the best MRR, then the simplest. LLM and judge: `qwen2.5:7b-instruct`.
 
-| Variante (dev) | ok / 14 | Erreurs | MRR | Exactitude (juge) | Abstention | Latence p50 |
+| Variant (dev) | ok / 14 | Errors | MRR | Accuracy (judge) | Abstention | p50 latency |
 |---|---|---|---|---|---|---|
-| **modèles d'origine, seuil −2,0, k = 5** | **11** | 2 `wrong_answer`, 1 `answered_without_gold` | 0,85 | 0,75 | 100 % | 4,4 s |
-| modèles d'origine, seuil −0,44 (règle dev) | 11 | idem | 0,85 | 0,75 | 100 % | 3,0 s |
-| modèles d'origine, k = 8 | 11 | idem | 0,85 | 0,75 | 100 % | 5,1 s |
-| modèles affinés (E9), seuil −1,45 | 10 | 4 `wrong_answer` | 0,95 | 0,55 | 100 % | 3,6 s |
-| modèles affinés (E9), seuil −2,52 (règle dev) | 10 | 4 `wrong_answer` | 0,95 | 0,55 | 100 % | 2,7 s |
+| **original models, threshold −2.0, k = 5** | **11** | 2 `wrong_answer`, 1 `answered_without_gold` | 0.85 | 0.75 | 100 % | 4.4 s |
+| original models, threshold −0.44 (dev rule) | 11 | same | 0.85 | 0.75 | 100 % | 3.0 s |
+| original models, k = 8 | 11 | same | 0.85 | 0.75 | 100 % | 5.1 s |
+| fine-tuned models (E9), threshold −1.45 | 10 | 4 `wrong_answer` | 0.95 | 0.55 | 100 % | 3.6 s |
+| fine-tuned models (E9), threshold −2.52 (dev rule) | 10 | 4 `wrong_answer` | 0.95 | 0.55 | 100 % | 2.7 s |
 
-Retenu : modèles d'origine, seuil −2,0, `TOP_K = 5`, c'est-à-dire la configuration par défaut de `.env.example`.
+Kept: original models, threshold −2.0, `TOP_K = 5`, i.e. the default configuration of `.env.example`.
 
-## Résultats (run final du 20 octobre 2026, 42 questions)
+## Results (final run of 20 October 2026, 42 questions)
 
-Commande : `uv run python eval/run_eval.py --questions eval/golden.jsonl --out eval/` (= E4), puis une commande
-par expérience. Exactitude : correct = 1, partiel = 0,5, sur les questions répondables. Coût : 0 $ (tout en local).
+Command: `uv run python eval/run_eval.py --questions eval/golden.jsonl --out eval/` (= E4), then one command
+per experiment. Accuracy: correct = 1, partial = 0.5, on answerable questions. Cost: $0 (everything local).
 
-### Split `test` (28 questions, dont 19 avec fiche de référence)
+### `test` split (28 questions, 19 of them with a reference fact sheet)
 
-| Exp. | Variante | hit@1 | hit@5 | MRR | Exactitude (juge) | Faux refus | Abstention hors corpus | Injections | Latence p50 / p95 | Tokens in / out |
+| Exp. | Variant | hit@1 | hit@5 | MRR | Accuracy (judge) | False refusals | Out-of-corpus abstention | Injections | p50 / p95 latency | Tokens in / out |
 |---|---|---|---|---|---|---|---|---|---|---|
-| E0 | BM25 seul, sans LLM | 0,58 | 0,90 | 0,71 | — | — | — (pas de LLM) | 100 % | 0,04 / 0,08 s | 0 / 0 |
-| E1 | BM25 + LLM | 0,58 | 0,90 | 0,71 | 0,74 | 10 % | 100 % | 100 % | 4,5 / 6,0 s | 2002 / 61 |
-| E2 | dense + LLM | 0,63 | 0,95 | 0,76 | 0,60 | 16 % | 100 % | 100 % | 4,3 / 6,8 s | 2135 / 61 |
-| E3 | hybride RRF + LLM | 0,68 | 0,90 | 0,77 | 0,82 | 5 % | 100 % | 100 % | 4,0 / 6,3 s | 2052 / 61 |
-| **E4** | **hybride + rerank + LLM (finale)** | **0,79** | **1,00** | **0,87** | **0,74** | **5 %** | **100 %** | **100 %** | **4,8 / 8,2 s** | **1649 / 57** |
-| E5 | agent (outils) | 0,90 | 1,00 | 0,95 | 0,71 | 16 % | 100 % | 100 % | 16,6 / 24,3 s | 4620 / 271 |
-| E6 | E4 avec qwen2.5:3b | 0,79 | 1,00 | 0,87 | 0,63 | 10 % | 80 % | 100 % | 2,0 / 2,9 s | 1971 / 49 |
-| E9 | E4 avec modèles affinés | 0,90 | 1,00 | 0,95 | 0,76 | 16 % | 100 % | 100 % | 4,5 / 7,2 s | 1334 / 44 |
+| E0 | BM25 only, no LLM | 0.58 | 0.90 | 0.71 | — | — | — (no LLM) | 100 % | 0.04 / 0.08 s | 0 / 0 |
+| E1 | BM25 + LLM | 0.58 | 0.90 | 0.71 | 0.74 | 10 % | 100 % | 100 % | 4.5 / 6.0 s | 2002 / 61 |
+| E2 | dense + LLM | 0.63 | 0.95 | 0.76 | 0.60 | 16 % | 100 % | 100 % | 4.3 / 6.8 s | 2135 / 61 |
+| E3 | hybrid RRF + LLM | 0.68 | 0.90 | 0.77 | 0.82 | 5 % | 100 % | 100 % | 4.0 / 6.3 s | 2052 / 61 |
+| **E4** | **hybrid + rerank + LLM (final)** | **0.79** | **1.00** | **0.87** | **0.74** | **5 %** | **100 %** | **100 %** | **4.8 / 8.2 s** | **1649 / 57** |
+| E5 | agent (tools) | 0.90 | 1.00 | 0.95 | 0.71 | 16 % | 100 % | 100 % | 16.6 / 24.3 s | 4620 / 271 |
+| E6 | E4 with qwen2.5:3b | 0.79 | 1.00 | 0.87 | 0.63 | 10 % | 80 % | 100 % | 2.0 / 2.9 s | 1971 / 49 |
+| E9 | E4 with fine-tuned models | 0.90 | 1.00 | 0.95 | 0.76 | 16 % | 100 % | 100 % | 4.5 / 7.2 s | 1334 / 44 |
 
-### Split `all` (42 questions)
+### `all` split (42 questions)
 
-| Exp. | hit@1 | hit@5 | MRR | Exactitude (juge) | Faux refus | Abstention hors corpus | Injections | Latence p50 / p95 | Tokens in / out |
+| Exp. | hit@1 | hit@5 | MRR | Accuracy (judge) | False refusals | Out-of-corpus abstention | Injections | p50 / p95 latency | Tokens in / out |
 |---|---|---|---|---|---|---|---|---|---|
-| E0 | 0,62 | 0,90 | 0,74 | — | — | — | 100 % | 0,04 / 0,08 s | 0 / 0 |
-| E1 | 0,62 | 0,90 | 0,74 | 0,76 | 7 % | 100 % | 100 % | 4,5 / 6,2 s | 2016 / 63 |
-| E2 | 0,66 | 0,90 | 0,76 | 0,62 | 17 % | 100 % | 100 % | 4,2 / 6,8 s | 2084 / 61 |
-| E3 | 0,72 | 0,90 | 0,79 | 0,79 | 3 % | 100 % | 100 % | 4,1 / 7,6 s | 2023 / 66 |
-| **E4** | **0,79** | **0,97** | **0,86** | **0,78** | **3 %** | **100 %** | **100 %** | **4,3 / 6,8 s** | **1694 / 56** |
-| E5 | 0,90 | 0,97 | 0,93 | 0,71 | 14 % | 100 % | 100 % | 16,4 / 25,1 s | 4711 / 273 |
-| E6 | 0,79 | 0,97 | 0,86 | 0,66 | 10 % | 86 % | 100 % | 1,9 / 2,9 s | 1959 / 47 |
-| E9 | 0,90 | 1,00 | 0,95 | 0,71 | 10 % | 100 % | 100 % | 4,9 / 7,1 s | 1346 / 47 |
+| E0 | 0.62 | 0.90 | 0.74 | — | — | — | 100 % | 0.04 / 0.08 s | 0 / 0 |
+| E1 | 0.62 | 0.90 | 0.74 | 0.76 | 7 % | 100 % | 100 % | 4.5 / 6.2 s | 2016 / 63 |
+| E2 | 0.66 | 0.90 | 0.76 | 0.62 | 17 % | 100 % | 100 % | 4.2 / 6.8 s | 2084 / 61 |
+| E3 | 0.72 | 0.90 | 0.79 | 0.79 | 3 % | 100 % | 100 % | 4.1 / 7.6 s | 2023 / 66 |
+| **E4** | **0.79** | **0.97** | **0.86** | **0.78** | **3 %** | **100 %** | **100 %** | **4.3 / 6.8 s** | **1694 / 56** |
+| E5 | 0.90 | 0.97 | 0.93 | 0.71 | 14 % | 100 % | 100 % | 16.4 / 25.1 s | 4711 / 273 |
+| E6 | 0.79 | 0.97 | 0.86 | 0.66 | 10 % | 86 % | 100 % | 1.9 / 2.9 s | 1959 / 47 |
+| E9 | 0.90 | 1.00 | 0.95 | 0.71 | 10 % | 100 % | 100 % | 4.9 / 7.1 s | 1346 / 47 |
 
-Erreurs de E4 (all) : 36 `ok`, 4 `wrong_answer`, 1 `false_refusal`, 1 `answered_without_gold` (détail par
-question dans `eval/report.md`). Matériel : RTX 3060 Laptop 6 Go ; sur CPU seul (`-LowMemory`, 3b), compter
-environ 7 s par réponse.
+E4 errors (all): 36 `ok`, 4 `wrong_answer`, 1 `false_refusal`, 1 `answered_without_gold` (per-question
+detail in `eval/report.md`). Hardware: RTX 3060 Laptop 6 GB; on CPU only (`-LowMemory`, 3b), expect about
+7 s per answer.
 
-### Lecture
+### Reading
 
-- **Recherche** : la fusion hybride bat chaque moteur seul (MRR test 0,77 contre 0,71 et 0,76), et le
-  reranker ajoute le plus gros gain (hit@1 test 0,68 → 0,79, hit@5 → 1,00) pour 0,2 à 0,8 s de latence (p50).
-  Il réduit aussi le contexte envoyé au LLM (1 649 tokens au lieu de 2 052).
-- **Le reranker vaut-il sa latence ?** Pour la recherche, oui. Sur l'exactitude jugée, E3 (0,82) et E4 (0,74)
-  restent dans le bruit de mesure : sur 19 questions, une question vaut ~0,05 point.
-- **Agent (E5)** : meilleure recherche (il relance des requêtes), mais près de 4 fois plus lent, près de
-  3 fois plus de tokens et davantage de refus ; pas d'avantage net en exactitude sur ce golden set.
-- **Taille du modèle (E6)** : le 3b est 2,4 fois plus rapide mais perd ~12 points d'exactitude et une
-  abstention (une hallucination sur une question hors corpus).
-- **Chiffres plus élevés que les runs de la semaine précédente** : une partie vient de la correction des
-  `gold_docs` de q005, q014 et q015 (fiches valables non annotées, PR #1), pas seulement du système.
+- **Retrieval**: hybrid fusion beats each engine alone (test MRR 0.77 vs 0.71 and 0.76), and the reranker
+  brings the largest gain (test hit@1 0.68 → 0.79, hit@5 → 1.00) for 0.2 to 0.8 s of latency (p50).
+  It also shortens the context sent to the LLM (1,649 tokens instead of 2,052).
+- **Is the reranker worth its latency?** For retrieval, yes. On judged accuracy, E3 (0.82) and E4 (0.74)
+  stay within measurement noise: on 19 questions, one question is worth ~0.05 points.
+- **Agent (E5)**: better retrieval (it reformulates queries), but almost 4 times slower, almost 3 times more
+  tokens and more refusals; no clear accuracy advantage on this golden set.
+- **Model size (E6)**: the 3b model is 2.4 times faster but loses ~12 accuracy points and one abstention
+  (a hallucination on an out-of-corpus question).
+- **Higher figures than the previous week's runs**: part of it comes from correcting the `gold_docs` of
+  q005, q014 and q015 (valid fact sheets that were not annotated, PR #1), not only from the system.
 
-### E8 : taille des passages (recherche seule)
+### E8: chunk size (retrieval only)
 
-| Taille max. | Passages | hit@1 (all) | hit@5 (all) | recall@5 (all) | MRR (all) | MRR (test) |
+| Max size | Chunks | hit@1 (all) | hit@5 (all) | recall@5 (all) | MRR (all) | MRR (test) |
 |---|---|---|---|---|---|---|
-| 120 mots | 18 376 | 0,76 | 0,90 | 0,75 | 0,81 | 0,81 |
-| **220 mots (retenu)** | **8 297** | **0,79** | **0,97** | **0,77** | **0,86** | **0,87** |
-| 400 mots | 5 233 | 0,83 | 0,97 | 0,77 | 0,89 | 0,91 |
+| 120 words | 18,376 | 0.76 | 0.90 | 0.75 | 0.81 | 0.81 |
+| **220 words (kept)** | **8,297** | **0.79** | **0.97** | **0.77** | **0.86** | **0.87** |
+| 400 words | 5,233 | 0.83 | 0.97 | 0.77 | 0.89 | 0.91 |
 
-Des passages plus longs classent mieux les fiches (métrique au niveau document), mais envoient environ
-1,8 fois plus de texte au LLM et mélangent davantage de cas (majeur / mineur, vide / meublé). Ce compromis
-n'a pas été mesuré de bout en bout avec le LLM : 220 mots est gardé, 400 mots est une piste à tester sur `dev`.
+Longer chunks rank fact sheets better (document-level metric), but send about 1.8 times more text to the
+LLM and mix more cases (adult / minor, unfurnished / furnished). This trade-off was not measured end to end
+with the LLM: 220 words is kept, 400 words is a lead to test on `dev`.
 
-### E9 : affinage des modèles de recherche
+### E9: fine-tuning the retrieval models
 
-Pas d'entraînement dans le système par défaut ; E9 teste si des modèles de recherche adaptés au corpus aident.
+No training in the default system; E9 tests whether retrieval models adapted to the corpus help.
 
-- **Données** : `qwen2.5:3b` écrit 2 questions d'usager pour 4 000 passages tirés au hasard → 7 369 questions
-  (`data/train/synthetic_queries.jsonl`). 19 questions trop proches d'une question du golden set
-  (Jaccard ≥ 0,5) sont retirées. Validation sur 47 fiches entières tenues à l'écart (894 questions).
-- **Embeddings** : `multilingual-e5-small`, perte contrastive (négatifs du lot), 1 époque, 68 s sur GPU.
-  Validation : précision@1 0,198 → 0,256, MRR@10 0,334 → 0,393.
-- **Reranker** : `mmarco-mMiniLMv2-L12`, entropie croisée binaire, 1 positif + 4 négatifs difficiles par
-  question (candidats hybrides d'*autres* fiches), 1 époque, 8 min sur GPU. Validation (reclasser les 30
-  candidats hybrides) : MRR@10 0,445 → 0,485. Seuil d'abstention recalé à −1,45 (même taux de refus que
-  l'original sur les questions synthétiques).
-- **Résultat** : la recherche progresse nettement (MRR all 0,86 → 0,95), mais pas l'exactitude des réponses
-  (dev 11 → 10 questions `ok`, test 0,74 → 0,76, all 0,78 → 0,71) et les faux refus augmentent (3 % → 10 %).
-  Le gain de classement ne se traduit pas en meilleures réponses avec ce LLM et ce seuil ; non retenu.
+- **Data**: `qwen2.5:3b` writes 2 user questions for 4,000 randomly drawn chunks → 7,369 questions
+  (`data/train/synthetic_queries.jsonl`). 19 questions too close to a golden-set question (Jaccard ≥ 0.5)
+  are removed. Validation on 47 whole held-out fact sheets (894 questions).
+- **Embeddings**: `multilingual-e5-small`, contrastive loss (in-batch negatives), 1 epoch, 68 s on GPU.
+  Validation: precision@1 0.198 → 0.256, MRR@10 0.334 → 0.393.
+- **Reranker**: `mmarco-mMiniLMv2-L12`, binary cross-entropy, 1 positive + 4 hard negatives per question
+  (hybrid candidates from *other* fact sheets), 1 epoch, 8 min on GPU. Validation (rerank the 30 hybrid
+  candidates): MRR@10 0.445 → 0.485. Abstention threshold recalibrated to −1.45 (same refusal rate as the
+  original on the synthetic questions).
+- **Result**: retrieval improves clearly (all MRR 0.86 → 0.95), but answer accuracy does not (dev 11 → 10
+  `ok` questions, test 0.74 → 0.76, all 0.78 → 0.71) and false refusals increase (3 % → 10 %). The ranking
+  gain does not turn into better answers with this LLM and this threshold; not kept.
 
-## Intégrité du split `test`
+## Integrity of the `test` split
 
-- La configuration finale a été choisie sur `dev` avec une règle fixée à l'avance (voir plus haut).
-- En revanche, des résultats sur `test` ont été regardés pendant la semaine (analyses d'erreurs, essais
-  d'affinage). Les chiffres de `test` sont donc un peu optimistes : ce n'est plus un jeu totalement vierge.
-- Les `gold_docs` de q005, q014 et q015 (split `test`) ont été complétés après avoir vu les sorties du
-  système ; les fiches ajoutées ont été vérifiées dans le texte.
+- The final configuration was chosen on `dev` with a rule fixed in advance (see above).
+- However, `test` results were looked at during the week (error analyses, fine-tuning trials). The `test`
+  figures are therefore somewhat optimistic: it is no longer a fully untouched set.
+- The `gold_docs` of q005, q014 and q015 (`test` split) were completed after seeing the system outputs; the
+  added fact sheets were checked in the text.
 
-## Risques résiduels (chiffres du run final E4, split `all`)
+## Residual risks (final E4 run, `all` split)
 
-- **Erreurs de cas et de calcul** : 4 réponses fausses sur 29 questions répondables (14 %) alors que la
-  bonne fiche est récupérée : mauvais tarif (q005 : 96 € au lieu de 86 € ; q028 : applique les 25 € de la
-  carte d'identité au passeport), délai mal lu (q017 : 2 ans au lieu de 6 mois), calcul de date faux (q026 :
-  28 novembre au lieu du 16 octobre — en mode RAG, sans l'outil `add_days` de l'agent).
-- **Abstention** : 7 questions hors corpus sur 7 refusées, 1 faux refus sur 29 (3 %) ; seuil calibré sur
-  seulement 2 questions hors corpus de `dev`. Avec le 3b (E6), une hallucination apparaît.
-- **Injections** : 6 sur 6 bloquées, aucune fuite du prompt ; score optimiste car les motifs du filtre ont
-  été écrits en voyant les questions, et contournables (paraphrase, autre langue, encodage).
-- **Juge LLM** : accord humain mesuré sur 10 réponses dans [judge_check.md](judge_check.md) (à remplir).
-  Relancer une même configuration fait varier 2 à 3 verdicts sur 29 avec le juge 3b.
-- **Informations périmées** : montants et délais changent ; l'assistant cite la date de la fiche mais ne
-  sait pas si elle est à jour.
-- **Petit échantillon** : 42 questions → intervalles de confiance larges (±15 points environ) ; ne pas
-  sur-interpréter des écarts de quelques points entre expériences.
+- **Case and calculation errors**: 4 wrong answers out of 29 answerable questions (14 %) although the right
+  fact sheet is retrieved: wrong price (q005: €96 instead of €86; q028: applies the identity card's €25 to
+  the passport), deadline misread (q017: 2 years instead of 6 months), wrong date computation (q026:
+  28 November instead of 16 October — in RAG mode, without the agent's `add_days` tool).
+- **Abstention**: 7 out-of-corpus questions out of 7 refused, 1 false refusal out of 29 (3 %); threshold
+  calibrated on only 2 out-of-corpus `dev` questions. With the 3b model (E6), a hallucination appears.
+- **Injections**: 6 out of 6 blocked, no prompt leak; optimistic score because the filter patterns were
+  written while looking at the questions, and they can be bypassed (paraphrase, other language, encoding).
+- **LLM judge**: human agreement measured on 10 answers in [judge_check.md](judge_check.md) (to fill in).
+  Rerunning the same configuration changes 2 to 3 verdicts out of 29 with the 3b judge.
+- **Outdated information**: amounts and deadlines change; the assistant cites the fact sheet's date but does
+  not know whether it is up to date.
+- **Small sample**: 42 questions → wide confidence intervals (about ±15 points); do not over-interpret
+  differences of a few points between experiments.

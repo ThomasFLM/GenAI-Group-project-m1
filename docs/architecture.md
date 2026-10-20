@@ -1,72 +1,79 @@
-# Architecture et choix techniques
+# Architecture and technical choices
 
-Chaque choix ci-dessous est une **hypothèse à mesurer** sur le split `dev` du golden set, puis confirmée
-une seule fois sur le split `test` (questions tenues à l'écart pendant le réglage).
+Each choice below is a **hypothesis to measure** on the `dev` split of the golden set, then confirmed
+once on the `test` split (questions held out during tuning).
 
-## 1. Ingestion et nettoyage (`ingestion.py`)
+## 1. Ingestion and cleaning (`ingestion.py`)
 
-- Source : archive XML officielle `vosdroits-latest.zip` (DILA), une fiche = un fichier `F*.xml`.
-  Identifiant = attribut `ID` (ex. `F1234`), réutilisé tel quel dans `gold_docs` et dans les citations.
-- On garde : titre, résumé, thème, date de modification, et le texte structuré (chapitres, sous-chapitres,
-  cas/situations, listes, tableaux, encadrés « À savoir / Attention »).
-- On retire : fil d'Ariane, menus, « Voir aussi », références juridiques, services en ligne, « Où s'adresser »,
-  partenaires — du bruit pour la recherche lexicale qui ne contient pas de réponse.
-- Normalisation : Unicode NFC, espaces insécables, espaces multiples.
-- Sélection (~500) : thèmes *Papiers - Citoyenneté - Élections*, *Logement*, *Transports - Mobilité*,
-  répartis équitablement, ordre déterministe ; les fiches du golden set sont toujours incluses.
+- Source: the official XML archive `vosdroits-latest.zip` (DILA), one fact sheet = one `F*.xml` file.
+  Identifier = the `ID` attribute (e.g. `F1234`), reused as-is in `gold_docs` and in citations.
+- Kept: title, summary, theme, modification date, and the structured text (chapters, sub-chapters,
+  cases/situations, lists, tables, "À savoir / Attention" boxes).
+- Removed: breadcrumbs, menus, "Voir aussi" (see also), legal references, online services, "Où s'adresser"
+  (where to go), partners — noise for lexical search that never contains an answer.
+- Normalisation: Unicode NFC, non-breaking spaces, repeated spaces.
+- Selection (~500): themes *Papiers - Citoyenneté - Élections*, *Logement*, *Transports - Mobilité*,
+  spread evenly, deterministic order; the golden-set fact sheets are always included.
 
-## 2. Découpage (`chunking.py`)
+## 2. Chunking (`chunking.py`)
 
-- **Par section** : un passage ne mélange jamais deux sections. Les fiches sont organisées en cas
-  (« location vide » / « location meublée », « majeur » / « mineur ») ; mélanger deux cas dans un passage
-  fait répondre le modèle avec le mauvais chiffre.
-- Sections longues : regroupement de paragraphes jusqu'à **220 mots**, **40 mots** de recouvrement.
-  (≈ 300 tokens : assez pour une règle et ses exceptions, assez court pour que 5 passages tiennent
-  dans le contexte d'un modèle 7B.)
-- **En-tête contextuel** indexé avec chaque passage : « titre de la fiche — chemin de section ».
-  Sans lui, un passage « Le délai est de 2 mois » n'est retrouvable ni par BM25 ni par les embeddings.
-- Expériences prévues : 120 / 220 / 400 mots, avec/sans en-tête → hit@5 et MRR sur `dev`.
+- **By chapter**: a chunk never spans two chapters (first heading level).
+- Inside a chapter, sub-sections (cases such as "location vide" / "location meublée", "majeur" /
+  "mineur") are packed together up to **220 words** with **40 words** of overlap, and each case
+  **keeps its heading inside the chunk text** ("### Location vide"). The model therefore knows which case
+  each sentence applies to. A first version that split strictly by section produced 14,632 crumbs with a
+  median of 41 words, because real fact sheets contain dozens of small nested cases; grouping by chapter
+  gives about 8,300 chunks with a median of 195 words.
+- A sub-heading is never separated from its first paragraph; a chunk that starts in the middle of a case
+  repeats its heading followed by "(suite)".
+- 220 words ≈ 300 tokens: enough for a rule and its exceptions, short enough for 5 chunks to fit in the
+  context of a 7B model.
+- **Contextual header** indexed with each chunk: "fact sheet title — chapter". Without it, a chunk
+  saying "Le délai est de 2 mois" can be found neither by BM25 nor by the embeddings.
+- Experiment E8 compares 120 / 220 / 400 words (see evaluation.md).
 
-## 3. Recherche hybride (`retrieval.py`)
+## 3. Hybrid retrieval (`retrieval.py`)
 
-| Étape | Choix | Pourquoi |
+| Step | Choice | Why |
 |---|---|---|
-| Lexical | BM25 (rank-bm25), tokenisation française sans accents, mots vides, racinisation légère | les questions contiennent des termes exacts (« dépôt de garantie », « zone tendue ») |
-| Dense | `multilingual-e5-small` (préfixes `query:` / `passage:`), cosinus | paraphrases (« rendre la caution » ↔ « restitution du dépôt de garantie ») |
-| Fusion | RRF (k = 60), 30 candidats par moteur | robuste, ne demande pas de normaliser des scores hétérogènes |
-| Reranking | cross-encoder multilingue sur les 30 candidats → top 5 | précision du top 5, et score absolu utilisable comme seuil d'abstention |
-| Filtres | date de mise à jour (`since`), thème | questions « depuis 2024 », « dernières fiches » |
+| Lexical | BM25 (rank-bm25), French tokenisation without accents, stop words, light stemming | questions contain exact terms ("dépôt de garantie", "zone tendue") |
+| Dense | `multilingual-e5-small` (`query:` / `passage:` prefixes), cosine | paraphrases ("rendre la caution" ↔ "restitution du dépôt de garantie") |
+| Fusion | RRF (k = 60), 30 candidates per engine | robust, no need to normalise heterogeneous scores |
+| Reranking | multilingual cross-encoder on the 30 candidates → top 5 | top-5 precision, and an absolute score usable as an abstention threshold |
+| Filters | update date (`since`), theme | "since 2024", "latest fact sheets" questions |
 
-Index en mémoire (numpy) : ~3 000 passages × 384 dimensions, recherche < 10 ms ; une base vectorielle
-n'apporterait rien à cette échelle (piste bonus : Qdrant pour les filtres de métadonnées).
+In-memory index (numpy): ~8,300 chunks × 384 dimensions, search in a few milliseconds; a vector database
+would bring nothing at this scale (bonus idea: Qdrant for metadata filters).
 
-## 4. Génération (`pipeline.py`, `prompts.py`, `llm.py`)
+## 4. Generation (`pipeline.py`, `prompts.py`, `llm.py`)
 
-- LLM local via Ollama, température 0, `seed` fixé (reproductibilité).
-- **Sortie structurée** : schéma JSON imposé à Ollama (`format`), puis validation pydantic :
-  `{"answerable": bool, "answer": str, "citations": [str]}`. Citations hors des documents récupérés
-  supprimées ; réponse « answerable » sans citation valide = invalide → **un** nouvel essai avec le message
-  d'erreur, puis refus standard.
-- **Abstention** à deux niveaux : (1) score du reranker sous le seuil → refus sans appeler le LLM
-  (économise latence et tokens) ; (2) le LLM met `answerable: false`.
-- **Mode agent** : boucle d'appels d'outils (≤ 4 étapes) — `search_corpus` (reformulation, multi-requêtes,
-  filtre de date), `get_document` (lecture d'une fiche complète), `add_days` (calcul de date limite :
-  les LLM se trompent en arithmétique de dates). Si l'agent ne cherche rien, une recherche est imposée.
-- **Mesure** : tokens in/out (`prompt_eval_count` / `eval_count` d'Ollama, `usage` de l'API), latence
-  par étape (BM25, dense, rerank, LLM), appels d'outils, coût ($ API ; 0 $ en local, coût matériel discuté
-  à part), raison d'arrêt (`stop`, `length`, `abstained`, `low_retrieval_score`, `injection_blocked`,
-  `validation_failed`, `output_blocked_leak`, `max_steps`, `llm_error`).
+- Local LLM through Ollama, temperature 0, fixed `seed` (reproducibility).
+- Prompts are in French, like the corpus and the questions; the evaluation results were measured with
+  these exact prompts.
+- **Structured output**: JSON schema enforced by Ollama (`format`), then pydantic validation:
+  `{"answerable": bool, "answer": str, "citations": [str]}`. Citations outside the retrieved documents are
+  removed; an "answerable" answer without a valid citation is invalid → **one** retry with the error
+  message, then the standard refusal.
+- Two-level **abstention**: (1) reranker score below the threshold → refusal without calling the LLM
+  (saves latency and tokens); (2) the LLM sets `answerable: false`.
+- **Agent mode**: tool-calling loop (≤ 4 steps) — `search_corpus` (reformulation, multiple queries, date
+  filter), `get_document` (read a whole fact sheet), `add_days` (deadline computation: LLMs make mistakes
+  in date arithmetic). If the agent does not search at all, a search is forced.
+- **Measurement**: tokens in/out (Ollama's `prompt_eval_count` / `eval_count`, the API's `usage`),
+  per-step latency (BM25, dense, rerank, LLM), tool calls, cost ($ for the API; $0 locally, hardware cost
+  discussed separately), stop reason (`stop`, `length`, `abstained`, `low_retrieval_score`,
+  `injection_blocked`, `validation_failed`, `output_blocked_leak`, `max_steps`, `llm_error`).
 
-## 5. Sécurité : injections de prompt (`guardrails.py`)
+## 5. Security: prompt injection (`guardrails.py`)
 
-Défense en profondeur :
-1. **Entrée** : motifs FR/EN (« ignore les instructions », « prompt système », « tu es désormais »,
-   balises `<system>`…). Politique `block` (refus immédiat) ou `warn` (on laisse passer, le reste protège).
-2. **Contexte** : passages et question encadrés par des balises et déclarés comme *données*.
-   Injection indirecte testée : une fiche de test contient « Ignore les instructions précédentes ».
-3. **Sortie** : canari secret dans le prompt système ; s'il ressort, la réponse est bloquée. Les citations
-   sont limitées aux documents réellement récupérés (pas de fausse source).
+Defence in depth:
+1. **Input**: FR/EN patterns ("ignore les instructions", "prompt système", "tu es désormais",
+   `<system>` tags…). `block` policy (immediate refusal) or `warn` (let it through, the other layers protect).
+2. **Context**: chunks and question wrapped in tags and declared as *data*.
+   Indirect injection tested: a test fact sheet contains "Ignore les instructions précédentes".
+3. **Output**: secret canary in the system prompt; if it shows up, the answer is blocked. Citations are
+   restricted to the documents actually retrieved (no fake source).
 
-Limite assumée : les motifs ont été écrits en voyant les injections du golden set → le taux de résistance
-mesuré est optimiste. Pour une mesure honnête, ajouter des injections nouvelles dans le split `test`
-sans retoucher les motifs (cf. evaluation.md).
+Acknowledged limitation: the patterns were written while looking at the golden-set injections → the
+measured resistance rate is optimistic. For an honest measurement, add new injections to the `test` split
+without touching the patterns (see evaluation.md).

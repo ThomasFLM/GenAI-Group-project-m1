@@ -1,76 +1,82 @@
-# Data card — sous-corpus Service-Public.fr Particuliers
+# Data card — Service-Public.fr "Particuliers" sub-corpus
 
-> Chiffres produits par `uv run python -m rag.cli stats` (fichier `docs/corpus_stats.json`).
+> Figures produced by `uv run python -m rag.cli stats` (file `docs/corpus_stats.json`).
 
 ## Source
 
 | | |
 |---|---|
-| Jeu de données | « Fiches pratiques et ressources de Service-Public.fr Particuliers » (data.gouv.fr) |
-| Producteur | DILA — Direction de l'information légale et administrative |
-| Format | archive ZIP de fichiers XML (`vosdroits-latest.zip`), une fiche par fichier, conformes au schéma XSD 3.5 (copie dans `docs/schema/3.5/`, élément racine `Publication`) |
-| Licence | Licence Ouverte / Open Licence 2.0 (Etalab) — à vérifier sur la page du jeu |
-| Date de téléchargement | 13/10/2026 (`vosdroits-latest.zip`, 24 Mo, 145 Mo décompressés) |
-| Alternative | export « vectorisé » de la DINUM (Parquet, Hugging Face) : chargeable via `build-corpus --source fichier.parquet`. Seul le texte est utilisé ; nos propres découpage et embeddings ; leurs embeddings peuvent servir de baseline. |
+| Dataset | "Fiches pratiques et ressources de Service-Public.fr Particuliers" (data.gouv.fr) |
+| Producer | DILA — Direction de l'information légale et administrative (French government legal information office) |
+| Format | ZIP archive of XML files (`vosdroits-latest.zip`), one fact sheet per file, declaring the XSD schema 3.5 (copy in `docs/schema/3.5/`, root element `Publication`) |
+| Licence | Licence Ouverte / Open Licence 2.0 (Etalab) — to be checked on the dataset page |
+| Download date | 13/10/2026 (`vosdroits-latest.zip`, 24 MB, 145 MB uncompressed) |
+| Alternative | DINUM "vectorised" export (Parquet, Hugging Face): loadable with `build-corpus --source file.parquet`. Only the text is used; our own chunking and embeddings; their embeddings can serve as a baseline. |
 
-## Sélection (~500 documents)
+The fact sheets are written in French; theme names, fact-sheet types and XML element names are quoted
+as they appear in the data.
 
-L'archive téléchargée le 13/10/2026 contient 5 573 fichiers XML : 3 003 fiches `F*`, 2 318 ressources `R*`
-(formulaires, sites, adresses), 243 dossiers/thèmes `N*` et quelques index. Les fiches déclarent le schéma
-3.5 (`xsi:noNamespaceSchemaLocation="../Schemas/3.5/Publication.xsd"`) mais **seules 634 sur 3 003 le
-respectent** à la validation (lxml) : la plupart des écarts viennent d'un élément `TitreRiche` absent du
-schéma (6 438 occurrences, doublon du titre des cas, ignoré par le parseur), puis de `Liste`, `BlocCas`,
-`ServiceEnLigne`, `ASavoir` placés à des endroits non prévus. Le parseur parcourt donc l'arbre de façon
-générique au lieu de suivre strictement le schéma.
+## Selection (~500 documents)
 
-| Type de fiche (`@type`) | Nb | Mots (médiane) | Retenu ? |
+The archive downloaded on 13/10/2026 contains 5,573 XML files: 3,003 fact sheets `F*`, 2,318 resources `R*`
+(forms, websites, addresses), 243 folders/themes `N*` and a few indexes. The fact sheets declare schema
+3.5 (`xsi:noNamespaceSchemaLocation="../Schemas/3.5/Publication.xsd"`) but **only 634 out of 3,003 actually
+pass** validation (lxml): most deviations come from a `TitreRiche` element missing from the schema
+(6,438 occurrences, a duplicate of the case title, ignored by the parser), then from `Liste`, `BlocCas`,
+`ServiceEnLigne`, `ASavoir` placed where the schema does not expect them. The parser therefore walks the
+tree generically instead of strictly following the schema.
+
+| Fact-sheet type (`@type`) | Count | Words (median) | Kept? |
 |---|---|---|---|
-| Fiche d'information conditionnée | 1 496 | 1 904 | oui |
-| Fiche Question-réponse conditionnée | 1 385 | 686 | oui |
-| Recherche guidée | 85 | 60 (max 858 552) | non : questionnaire arborescent, pas un texte |
-| Fiche Comment faire si conditionné | 22 | 3 088 | non : agrégat d'autres fiches |
-| Fiche avec liens externes | 15 | 48 | non : uniquement des liens |
+| Fiche d'information conditionnée (information sheet) | 1,496 | 1,904 | yes |
+| Fiche Question-réponse conditionnée (Q&A sheet) | 1,385 | 686 | yes |
+| Recherche guidée (guided search) | 85 | 60 (max 858,552) | no: decision-tree questionnaire, not a text |
+| Fiche Comment faire si conditionné ("what to do if") | 22 | 3,088 | no: aggregate of other fact sheets |
+| Fiche avec liens externes (external links) | 15 | 48 | no: links only |
 
-Fiches d'information + questions-réponses : 2 881, réparties en 11 thèmes (Travail 621, Argent 394,
-Famille 377, Logement 350, Social 263, Justice 233, Transports 214, Papiers 199, Étranger 173, ...).
+Information + Q&A fact sheets: 2,881, spread over 11 themes (Travail 621, Argent 394, Famille 377,
+Logement 350, Social 263, Justice 233, Transports 214, Papiers 199, Étranger 173, ...).
 
-Thèmes retenus : **Papiers - Citoyenneté - Élections**, **Logement**, **Transports - Mobilité**
-(729 fiches éligibles). Pourquoi : questions fréquentes des particuliers, réponses factuelles et vérifiables
-(délais, montants, durées), beaucoup de cas proches (location vide / meublée, majeur / mineur, métropole /
-Guyane) qui rendent le retrieval non trivial. Sélection de 500 fiches : répartition équilibrée entre thèmes,
-ordre déterministe par identifiant, les 30 fiches du golden set sont toujours incluses.
-Hors corpus volontairement : fiscalité, travail, social, famille, entreprises → questions « je ne sais pas ».
+Themes kept: **Papiers - Citoyenneté - Élections** (identity papers, citizenship, elections), **Logement**
+(housing), **Transports - Mobilité** (transport) — 729 eligible fact sheets. Why: frequent questions from
+private individuals, factual and checkable answers (deadlines, amounts, durations), and many close cases
+(unfurnished / furnished rental, adult / minor, mainland France / French Guiana) that make retrieval
+non-trivial. Selection of 500 fact sheets: even spread across themes, deterministic order by identifier,
+the 30 golden-set fact sheets are always included.
+Deliberately out of corpus: tax, work, social benefits, family, businesses → "je ne sais pas" questions.
 
-## Statistiques (corpus retenu, `docs/corpus_stats.json`)
+## Statistics (kept corpus, `docs/corpus_stats.json`)
 
-| Mesure | Valeur |
+| Measure | Value |
 |---|---|
-| Fiches retenues | 500 (269 fiches d'information, 231 questions-réponses) |
-| Répartition par thème | Logement 168 · Papiers 166 · Transports 166 |
-| Mots par fiche | moyenne 2 255 · médiane 1 389 · min 30 · max 44 883 · total 1,13 M |
-| Passages après découpage (220 mots, recouvrement 40) | 8 297 |
-| Mots par passage | moyenne 159 · médiane 195 · min 4 · max 261 |
-| Dates de mise à jour | 2021-06-22 → 2026-10-13 ; 495 fiches sur 500 mises à jour depuis 2024 |
+| Fact sheets kept | 500 (269 information sheets, 231 Q&A sheets) |
+| Split by theme | Logement 168 · Papiers 166 · Transports 166 |
+| Words per fact sheet | mean 2,255 · median 1,389 · min 30 · max 44,883 · total 1.13 M |
+| Chunks after chunking (220 words, 40 overlap) | 8,297 |
+| Words per chunk | mean 159 · median 195 · min 4 · max 261 |
+| Update dates | 2021-06-22 → 2026-10-13; 495 of 500 fact sheets updated since 2024 |
 
-## Nettoyage et observations
+## Cleaning and observations
 
-- Supprimé : fil d'Ariane, menus, dossiers parents (listes de fiches sœurs), « Voir aussi », références,
-  services en ligne, « Où s'adresser », médias, logique de personnalisation (`Condition`), titres alternatifs.
-- Les fiches « conditionnées » contiennent **toutes les variantes** (France / Guyane / étranger, majeur /
-  mineur, vide / meublé...) : d'où des fiches très longues (jusqu'à 45 000 mots) et des cas imbriqués sur
-  5 niveaux. Conséquence : le titre du cas est gardé dans chaque passage (« ### En Guyane »).
-- Tableaux (`<Rangée>`) linéarisés avec les en-têtes : « Contravention : 4e classe ; Minoré : 90 € ».
-- Pièges rencontrés en lisant 20 fiches et 20 passages (`docs/samples_to_read.md`) et corrigés :
-  espaces parasites autour des balises inline (« 1 er », « 6 e vendredi ») puis espaces perdus
-  (« validitéde ») ; titres de cas en double (`TitreRiche`) ; miettes de 1 à 40 mots avec le premier
-  découpage par section (14 632 passages, médiane 41 mots) → regroupement par chapitre (8 297, médiane 195).
-- Restent : phrases qui renvoient à un lien supprimé (« sur la plateforme suivante : »), chemins de cas très
-  longs.
+- Removed: breadcrumbs, menus, parent folders (lists of sibling fact sheets), "Voir aussi" (see also),
+  references, online services, "Où s'adresser" (where to go), media, personalisation logic (`Condition`),
+  alternative titles.
+- "Conditionnée" fact sheets contain **all variants** (France / French Guiana / abroad, adult / minor,
+  unfurnished / furnished...): hence very long fact sheets (up to 45,000 words) and cases nested 5 levels
+  deep. Consequence: the case heading is kept in every chunk ("### En Guyane").
+- Tables (`<Rangée>`) linearised with their headers: "Contravention : 4e classe ; Minoré : 90 €".
+- Pitfalls met while reading 20 fact sheets and 20 chunks (`docs/samples_to_read.md`), and fixed:
+  spurious spaces around inline tags ("1 er", "6 e vendredi"), then lost spaces ("validitéde");
+  duplicated case titles (`TitreRiche`); crumbs of 1 to 40 words with the first section-based chunking
+  (14,632 chunks, median 41 words) → grouping by chapter (8,297, median 195).
+- Remaining: sentences that point to a removed link ("sur la plateforme suivante :" — on the following
+  platform), very long case paths.
 
-## Limites et risques
+## Limitations and risks
 
-- Les montants et délais changent (lois de finances) : le corpus est un instantané daté ; l'assistant
-  peut donner une information périmée si l'archive n'est pas mise à jour. La date de la fiche est exposée
-  dans le contexte et les métadonnées.
-- Les fiches renvoient souvent à des simulateurs ou à des cas particuliers non couverts par le texte.
-- Corpus en français administratif ; les questions familières (« caution », « PV ») dépendent du dense.
+- Amounts and deadlines change (finance laws): the corpus is a dated snapshot; the assistant may give
+  outdated information if the archive is not refreshed. The fact sheet's date is exposed in the context
+  and the metadata.
+- Fact sheets often point to simulators or to special cases not covered by the text.
+- The corpus is written in administrative French; colloquial questions ("caution", "PV") depend on the
+  dense retriever.

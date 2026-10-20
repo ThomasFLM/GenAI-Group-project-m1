@@ -1,16 +1,16 @@
-"""Évaluation sur le golden set.
+"""Evaluation on the golden set.
 
     uv run python eval/run_eval.py --questions eval/golden.jsonl --out eval/
 
-Écrit dans --out :
-- results.jsonl : une ligne par question (réponse, sources citées, documents récupérés,
-                  tokens in/out, latence, appels d'outils, raison d'arrêt, ...)
-- scores.jsonl  : métriques par question (hit@k, MRR, verdict du juge, catégorie d'erreur)
-- metrics.json  : agrégats par split (dev / test / all)
-- report.md     : tableau de bord + analyse d'erreurs
+Writes into --out:
+- results.jsonl: one line per question (answer, cited sources, retrieved documents,
+                 tokens in/out, latency, tool calls, stop reason, ...)
+- scores.jsonl : per-question metrics (hit@k, MRR, judge verdict, error category)
+- metrics.json : aggregates per split (dev / test / all)
+- report.md    : dashboard + error analysis
 
-Options utiles pour les expériences : --mode agent, --backend anthropic, --retrieval bm25|dense|hybrid,
---no-rerank, --top-k, --no-judge, --split test, --tag nom_experience.
+Useful options for experiments: --mode agent, --backend anthropic, --retrieval bm25|dense|hybrid,
+--no-rerank, --top-k, --no-judge, --split test, --tag experiment_name.
 """
 from __future__ import annotations
 
@@ -32,15 +32,15 @@ def main(argv=None):
     p.add_argument("--out", default="eval/")
     p.add_argument("--mode", choices=["rag", "agent"], default="rag")
     p.add_argument("--backend", choices=["ollama", "anthropic", "extractive"])
-    p.add_argument("--model", help="nom du modèle (Ollama ou API) pour ce run")
+    p.add_argument("--model", help="model name (Ollama or API) for this run")
     p.add_argument("--retrieval", choices=["bm25", "dense", "hybrid"])
     p.add_argument("--no-rerank", action="store_true")
     p.add_argument("--top-k", type=int)
     p.add_argument("--min-rerank-score", type=float)
     p.add_argument("--split", choices=["dev", "test", "all"], default="all")
-    p.add_argument("--no-judge", action="store_true", help="pas de LLM-juge (scores lexicaux seulement)")
-    p.add_argument("--rescore", action="store_true", help="recalcule les scores à partir de results.jsonl existant")
-    p.add_argument("--tag", default="", help="sous-dossier de sortie pour comparer des expériences")
+    p.add_argument("--no-judge", action="store_true", help="no LLM judge (lexical scores only)")
+    p.add_argument("--rescore", action="store_true", help="recompute the scores from an existing results.jsonl")
+    p.add_argument("--tag", default="", help="output sub-directory to compare experiments")
     p.add_argument("--limit", type=int)
     args = p.parse_args(argv)
 
@@ -82,7 +82,7 @@ def main(argv=None):
                 f.flush()
                 print(f"[{i}/{len(golden)}] {q['id']} {resp.stop_reason:20} {resp.latency_s:6.2f}s "
                       f"cit={resp.cited_sources} | {resp.answer[:80]!r}")
-        print(f"Génération terminée en {time.perf_counter() - t_start:.1f}s -> {results_path}")
+        print(f"Generation finished in {time.perf_counter() - t_start:.1f}s -> {results_path}")
 
     judge = None
     if not args.no_judge:
@@ -90,8 +90,8 @@ def main(argv=None):
 
         try:
             judge = make_llm(settings, backend=settings.judge_backend, model=settings.judge_model)
-        except Exception as e:  # le juge est optionnel : on continue avec les scores lexicaux
-            print(f"[warn] juge indisponible ({e}) : scores lexicaux uniquement")
+        except Exception as e:  # the judge is optional: carry on with lexical scores
+            print(f"[warn] judge unavailable ({e}): lexical scores only")
 
     scores = []
     for q in golden:
@@ -105,7 +105,7 @@ def main(argv=None):
             try:
                 verdict = judge_answer(judge, q["question"], q["answer"], r["answer"])
             except Exception as e:
-                print(f"[warn] juge en échec sur {q['id']} : {e}")
+                print(f"[warn] judge failed on {q['id']}: {e}")
         scores.append(score_one(q, r, settings.top_k, verdict))
 
     with open(out / "scores.jsonl", "w", encoding="utf-8") as f:

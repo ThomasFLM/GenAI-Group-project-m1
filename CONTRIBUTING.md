@@ -1,66 +1,66 @@
-# Guide de contribution
+# Contributing guide
 
-Ce guide explique comment travailler à plusieurs sur le repo sans se gêner.
+This guide explains how to work together on the repo without getting in each other's way.
 
-## Règle d'or
+## Golden rule
 
-**On ne pousse jamais directement sur `main`.** Chaque modification passe par une branche et une pull request relue par au moins un autre membre.
+**Never push directly to `main`.** Every change goes through a branch and a pull request reviewed by at least one other member.
 
-## Démarrer
+## Getting started
 
 ```bash
-git clone <url-du-repo>
-cd <nom-du-repo>
+git clone <repo-url>
+cd <repo-name>
 git checkout main
 git pull
 ```
 
-## Travailler sur une tâche
+## Working on a task
 
-1. Mets à jour `main` :
+1. Update `main`:
    ```bash
    git checkout main
    git pull
    ```
-2. Crée une branche pour ta tâche :
+2. Create a branch for your task:
    ```bash
-   git checkout -b feature/nom-de-la-tache
+   git checkout -b feature/task-name
    ```
-   Exemples : `feature/decoupage-documents`, `fix/erreur-encodage`, `docs/readme`.
-3. Fais des commits petits et clairs :
+   Examples: `feature/document-chunking`, `fix/encoding-error`, `docs/readme`.
+3. Make small, clear commits:
    ```bash
    git add .
-   git commit -m "Ajoute le découpage des documents en passages"
+   git commit -m "Add document chunking"
    ```
-4. Envoie ta branche :
+4. Push your branch:
    ```bash
-   git push -u origin feature/nom-de-la-tache
+   git push -u origin feature/task-name
    ```
-5. Sur GitHub, ouvre une **pull request** vers `main`, décris ce que tu as fait et demande une relecture.
-6. Après validation, fusionne, puis supprime la branche.
+5. On GitHub, open a **pull request** to `main`, describe what you did and ask for a review.
+6. Once approved, merge it, then delete the branch.
 
-## Bonnes pratiques
+## Good practices
 
-- Une branche = une tâche. Évite les branches qui durent des semaines.
-- Fais `git pull` sur `main` avant de commencer et régulièrement pendant le travail.
-- Ne commite jamais de clés d'API, mots de passe ou fichiers `.env`.
-- Ne commite pas de gros fichiers de données : mets-les dans `data/raw/` (ignoré par git) et partage-les via le drive du groupe.
-- Écris des messages de commit qui disent ce qui change, pas « modif » ou « test ».
+- One branch = one task. Avoid branches that live for weeks.
+- Run `git pull` on `main` before starting and regularly while working.
+- Never commit API keys, passwords or `.env` files.
+- Do not commit large data files: put them in `data/raw/` (ignored by git) and share them through the group drive.
+- Write commit messages that say what changes, not "update" or "test".
 
-## En cas de conflit
+## Merge conflicts
 
-Si Git signale un conflit au moment de fusionner `main` dans ta branche :
+If Git reports a conflict when merging `main` into your branch:
 
 ```bash
-git checkout feature/ma-branche
+git checkout feature/my-branch
 git merge main
-# ouvre les fichiers en conflit, garde le bon contenu, supprime les marqueurs <<<<<<< ======= >>>>>>>
+# open the conflicting files, keep the right content, remove the <<<<<<< ======= >>>>>>> markers
 git add .
 git commit
 ```
 
-En cas de doute, demande au groupe avant de forcer quoi que ce soit (`git push --force` est à éviter).
+When in doubt, ask the group before forcing anything (avoid `git push --force`).
 
-## Répartition du travail
+## Splitting the work
 
-Utilise l'onglet **Issues** de GitHub : une issue par tâche, assignée à une personne. Cela permet à tout le monde de voir qui fait quoi.
+Use the GitHub **Issues** tab: one issue per task, assigned to one person. That way everyone can see who does what.

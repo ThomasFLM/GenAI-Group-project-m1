@@ -1,7 +1,9 @@
-"""Assistant : orchestration RAG (une recherche → une génération) et mode agent (outils).
+"""Assistant: RAG orchestration (one search -> one generation) and agent mode (tools).
 
-Chaque réponse est instrumentée : tokens, latence (totale et par étape), appels d'outils,
-appels LLM, coût, raison d'arrêt.
+Every answer is instrumented: tokens, latency (total and per step), tool calls, LLM calls,
+cost, stop reason.
+
+Tool descriptions and tool outputs are read by the LLM, so they stay in French like the prompts.
 """
 from __future__ import annotations
 
@@ -56,7 +58,7 @@ AGENT_TOOLS = [
 
 
 class Trace:
-    """Accumule les mesures d'une réponse."""
+    """Accumulates the measurements of one answer."""
 
     def __init__(self):
         self.t0 = time.perf_counter()
@@ -91,7 +93,7 @@ class Trace:
 
 
 def extractive_answer(results: list[RetrievedChunk]) -> LLMAnswer:
-    """Baseline sans LLM : les deux premières phrases du meilleur passage."""
+    """No-LLM baseline: the first two sentences of the best chunk."""
     top = results[0].chunk
     sentences = re.split(r"(?<=[.!?])\s+", top.text.replace("\n", " "))
     return LLMAnswer(answerable=True, answer=" ".join(sentences[:2]).strip(), citations=[top.doc_id])
@@ -112,7 +114,7 @@ class Assistant:
     def model_name(self) -> str:
         return getattr(self.llm, "model", "extractive")
 
-    # ------------------------------------------------------------------ outils
+    # ------------------------------------------------------------------ tools
     def _search(self, trace: Trace, query: str, since: str | None = None, k: int | None = None):
         t0 = time.perf_counter()
         results = self.retriever.search(query, k=k, since=since)
@@ -154,10 +156,10 @@ class Assistant:
                                          result_summary=out[:120]))
         return out
 
-    # ------------------------------------------------------------------ génération
+    # ------------------------------------------------------------------ generation
     def _generate(self, trace: Trace, system: str, messages: list[dict], allowed: list[str],
                   purpose: str) -> tuple[LLMAnswer | None, str]:
-        """Appel LLM structuré + validation ; une seconde tentative si la sortie est invalide."""
+        """Structured LLM call + validation; one retry if the output is invalid."""
         last_stop = ""
         for attempt in range(2):
             r = self.llm.chat(system, messages, json_schema=ANSWER_JSON_SCHEMA)
@@ -247,7 +249,7 @@ class Assistant:
                     messages.append({"role": "tool", "tool_call_id": call["id"], "name": call["name"],
                                      "content": out})
             if not any(t.name == "search_corpus" for t in trace.tool_calls):
-                # l'agent n'a rien cherché : on impose une recherche pour ancrer la réponse
+                # the agent did not search: force a search to ground the answer
                 trace.flags.append("forced_search")
                 out = self._run_tool(trace, "search_corpus", {"query": question}, seen)
                 messages.append({"role": "user", "content": f"Résultats de recherche :\n{out}"})

@@ -1,5 +1,5 @@
-# Le projet utilise uv (pyproject.toml + uv.lock) : `uv sync`.
-# Ce fichier reste pour ceux qui préfèrent pip : `pip install -r requirements.txt && pip install -e .`
+# The project uses uv (pyproject.toml + uv.lock): `uv sync`.
+# This file is kept for pip users: `pip install -r requirements.txt && pip install -e .`
 numpy>=1.26
 pydantic>=2.6
 requests>=2.31
@@ -8,4 +8,4 @@ python-dotenv>=1.0
 pyarrow>=15
 sentence-transformers>=3.0
 pytest>=8
-# optionnels : anthropic>=1.0 (comparaison API), streamlit>=1.38 (interface)
+# optional: anthropic>=1.0 (API comparison), streamlit>=1.38 (UI)

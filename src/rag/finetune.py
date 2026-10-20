@@ -1,13 +1,14 @@
-"""Affinage (fine-tuning) du modèle d'embeddings sur le corpus.
+"""Fine-tuning of the embedding model (and the reranker) on the corpus.
 
-1. `generate_queries` : le LLM local écrit, pour des passages tirés au hasard, des questions d'usager
-   auxquelles le passage répond -> paires (question, passage) synthétiques.
-2. `finetune_embedder` : affine le modèle E5 sur ces paires avec une perte contrastive
-   (MultipleNegativesRankingLoss : les autres passages du lot servent d'exemples négatifs).
+1. `generate_queries`: for randomly drawn chunks, the local LLM writes user questions that the
+   chunk answers -> synthetic (question, chunk) pairs. The generation prompt is in French
+   because the questions must look like real French user queries.
+2. `finetune_embedder`: fine-tunes the E5 model on these pairs with a contrastive loss
+   (MultipleNegativesRankingLoss: the other chunks of the batch act as negatives).
+3. `finetune_reranker`: fine-tunes the cross-encoder on hard negatives mined with hybrid search.
 
-Le golden set n'est jamais utilisé pour l'entraînement : les questions synthétiques trop proches d'une
-question du golden set sont retirées (fuite de données), et la validation se fait sur des fiches tenues
-à l'écart de l'entraînement.
+The golden set is never used for training: synthetic questions too close to a golden-set
+question are removed (data leakage), and validation uses fact sheets held out from training.
 """
 from __future__ import annotations
 
@@ -30,7 +31,7 @@ QUERY_GEN_SYSTEM = (
     "« la fiche »."
 )
 
-# Questions qui renvoient au passage au lieu de se suffire à elles-mêmes (« selon la fiche… ») : écartées
+# Questions that refer to the chunk instead of standing on their own ("selon la fiche..."): dropped
 META_REFERENCE = re.compile(r"\b(selon|d'après|dans) (la fiche|le passage|le texte|ce document|cette fiche)", re.I)
 
 QUERY_JSON_SCHEMA = {
@@ -41,7 +42,7 @@ QUERY_JSON_SCHEMA = {
 
 
 def select_chunks(chunks: list[Chunk], n: int, min_words: int = 40, seed: int = 0) -> list[Chunk]:
-    """Tire `n` passages assez longs pour porter une réponse (ordre déterministe)."""
+    """Draw `n` chunks long enough to carry an answer (deterministic order)."""
     pool = [c for c in chunks if len(c.text.split()) >= min_words]
     rng = random.Random(seed)
     return rng.sample(pool, min(n, len(pool)))
@@ -55,9 +56,9 @@ def _ask_questions(llm, c: Chunk, per_chunk: int) -> list[str]:
 
 
 def generate_queries(chunks: list[Chunk], llm, out_path: Path, per_chunk: int = 2, workers: int = 1) -> int:
-    """Écrit une ligne JSON par question générée. Reprend là où un lancement précédent s'est arrêté.
+    """Write one JSON line per generated question. Resumes where a previous run stopped.
 
-    `workers` > 1 envoie des requêtes en parallèle (utile si Ollama tourne avec OLLAMA_NUM_PARALLEL > 1)."""
+    `workers` > 1 sends requests in parallel (useful if Ollama runs with OLLAMA_NUM_PARALLEL > 1)."""
     from concurrent.futures import ThreadPoolExecutor, as_completed
 
     done: set[str] = set()
@@ -73,8 +74,8 @@ def generate_queries(chunks: list[Chunk], llm, out_path: Path, per_chunk: int = 
             c = futures[fut]
             try:
                 questions = fut.result()
-            except Exception as e:  # une erreur ponctuelle ne doit pas arrêter une génération de plusieurs heures
-                print(f"[warn] {c.chunk_id} : {e}")
+            except Exception as e:  # a one-off error must not stop a generation that takes hours
+                print(f"[warn] {c.chunk_id}: {e}")
                 continue
             for q in [q.strip() for q in questions if isinstance(q, str)][:per_chunk]:
                 if len(q.split()) >= 3 and not META_REFERENCE.search(q):
@@ -85,7 +86,7 @@ def generate_queries(chunks: list[Chunk], llm, out_path: Path, per_chunk: int = 
             if i % 25 == 0 or i == len(todo):
                 elapsed = time.perf_counter() - t_start
                 eta = elapsed / i * (len(todo) - i)
-                print(f"{i}/{len(todo)} passages · {n_written} questions · reste ~{eta / 60:.0f} min", flush=True)
+                print(f"{i}/{len(todo)} chunks · {n_written} questions · ~{eta / 60:.0f} min left", flush=True)
     return n_written
 
 
@@ -95,12 +96,12 @@ def jaccard(a: str, b: str) -> float:
 
 
 def drop_golden_overlap(pairs: list[dict], golden_questions: list[str], threshold: float = 0.5) -> list[dict]:
-    """Retire les questions synthétiques trop proches d'une question du golden set."""
+    """Remove synthetic questions that are too close to a golden-set question."""
     return [p for p in pairs if all(jaccard(p["question"], g) < threshold for g in golden_questions)]
 
 
 def split_by_doc(pairs: list[dict], val_frac: float = 0.1, seed: int = 0) -> tuple[list[dict], list[dict]]:
-    """Validation sur des fiches entières tenues à l'écart (pas seulement d'autres passages des mêmes fiches)."""
+    """Validate on whole held-out fact sheets (not just other chunks of the same fact sheets)."""
     docs = sorted({p["doc_id"] for p in pairs})
     rng = random.Random(seed)
     val_docs = set(rng.sample(docs, max(1, int(len(docs) * val_frac))))
@@ -108,11 +109,11 @@ def split_by_doc(pairs: list[dict], val_frac: float = 0.1, seed: int = 0) -> tup
 
 
 def mine_hard_negatives(pairs: list[dict], retriever, n_candidates: int = 30, seed: int = 0) -> list[dict]:
-    """Ajoute à chaque paire les candidats de la recherche hybride (sans reranker), dans l'ordre.
+    """Add to each pair the hybrid-search candidates (without reranker), in order.
 
-    `negatives` = candidats d'autres fiches (ceux d'une même fiche répondent souvent aussi à la question :
-    les traiter comme négatifs apprendrait au reranker des erreurs). `candidates` = liste complète, pour
-    évaluer le reranking dans les conditions réelles."""
+    `negatives` = candidates from other fact sheets (chunks of the same fact sheet often answer the
+    question too: treating them as negatives would teach the reranker mistakes). `candidates` = the full
+    list, to evaluate reranking under real conditions."""
     out, t_start = [], time.perf_counter()
     for i, p in enumerate(pairs, 1):
         res = retriever.search(p["question"], k=n_candidates)
@@ -120,7 +121,7 @@ def mine_hard_negatives(pairs: list[dict], retriever, n_candidates: int = 30, se
         negs = [r.chunk.chunk_id for r in res if r.chunk.doc_id != p["doc_id"]]
         out.append({**p, "candidates": ids, "negatives": negs})
         if i % 500 == 0 or i == len(pairs):
-            print(f"négatifs : {i}/{len(pairs)} questions ({time.perf_counter() - t_start:.0f} s)", flush=True)
+            print(f"negatives: {i}/{len(pairs)} questions ({time.perf_counter() - t_start:.0f} s)", flush=True)
     return out
 
 
@@ -135,11 +136,11 @@ def finetune_reranker(mined: list[dict], chunks: list[Chunk], base_model: str, o
     from sentence_transformers.cross_encoder.losses import BinaryCrossEntropyLoss
 
     by_id = {c.chunk_id: c for c in chunks}
-    text = {cid: c.indexed_text for cid, c in by_id.items()}  # même texte que le reranker voit en production
+    text = {cid: c.indexed_text for cid, c in by_id.items()}  # same text as the reranker sees in production
     mined = [p for p in mined if p["chunk_id"] in by_id]
-    train, val = split_by_doc(mined, val_frac, seed)  # mêmes fiches de validation que pour les embeddings
+    train, val = split_by_doc(mined, val_frac, seed)  # same validation fact sheets as for the embeddings
 
-    # Négatifs difficiles pris parmi les mieux classés, avec un peu de hasard pour ne pas toujours voir les mêmes
+    # Hard negatives taken among the top-ranked ones, with some randomness so they are not always the same
     rng = random.Random(seed)
     queries, passages, labels = [], [], []
     for p in train:
@@ -149,7 +150,7 @@ def finetune_reranker(mined: list[dict], chunks: list[Chunk], base_model: str, o
             queries.append(p["question"]); passages.append(text[nid]); labels.append(0.0)
     train_ds = Dataset.from_dict({"query": queries, "passage": passages, "label": labels})
 
-    # Validation réaliste : reclasser les 30 candidats hybrides (le positif est ajouté s'il manque)
+    # Realistic validation: rerank the 30 hybrid candidates (the positive is added if missing)
     samples = [{"query": p["question"], "positive": [text[p["chunk_id"]]],
                 "documents": [text[c] for c in p["candidates"]]} for p in val]
     evaluator = CrossEncoderRerankingEvaluator(samples=samples, at_k=10, name="val", batch_size=64,
@@ -195,13 +196,13 @@ def finetune_embedder(pairs: list[dict], chunks: list[Chunk], base_model: str, o
     pairs = [p for p in pairs if p["chunk_id"] in by_id]
     train, val = split_by_doc(pairs, val_frac, seed)
 
-    # Préfixes E5 ajoutés à la main, comme SentenceTransformerEmbedder le fait à l'inférence
+    # E5 prefixes added by hand, as SentenceTransformerEmbedder does at inference time
     train_ds = Dataset.from_dict({
         "anchor": [f"query: {p['question']}" for p in train],
         "positive": [f"passage: {by_id[p['chunk_id']].indexed_text}" for p in train],
     })
 
-    # Validation : questions des fiches tenues à l'écart, cherchées parmi leurs passages + des distracteurs
+    # Validation: questions of the held-out fact sheets, searched among their chunks + distractors
     val_docs = {p["doc_id"] for p in val}
     rng = random.Random(seed)
     others = [c for c in chunks if c.doc_id not in val_docs]
@@ -222,7 +223,7 @@ def finetune_embedder(pairs: list[dict], chunks: list[Chunk], base_model: str, o
         output_dir=str(out_dir / "_checkpoints"), num_train_epochs=epochs, per_device_train_batch_size=batch_size,
         learning_rate=lr, warmup_ratio=0.1, batch_sampler=BatchSamplers.NO_DUPLICATES, save_strategy="no",
         eval_strategy="no", logging_steps=10, report_to="none", seed=seed, dataloader_drop_last=True,
-        fp16=torch.cuda.is_available(),  # GPU : demi-précision, plus rapide et moins de VRAM
+        fp16=torch.cuda.is_available(),  # GPU: half precision, faster and less VRAM
     )
     t0 = time.perf_counter()
     SentenceTransformerTrainer(model=model, args=args, train_dataset=train_ds,

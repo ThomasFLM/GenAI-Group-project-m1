@@ -1,4 +1,7 @@
-"""Modèles de données (pydantic) : documents, passages, sorties structurées, traces."""
+"""Data models (pydantic): documents, chunks, structured outputs, traces.
+
+The refusal texts stay in French: they are shown to end users of a French-language assistant.
+"""
 from __future__ import annotations
 
 from typing import Any
@@ -15,14 +18,14 @@ INJECTION_REFUSAL_TEXT = (
 
 
 class Document(BaseModel):
-    doc_id: str                      # identifiant Service-Public, ex. "F1234"
+    doc_id: str                      # Service-Public identifier, e.g. "F1234"
     title: str
     url: str = ""
     theme: str = ""
     subtheme: str = ""
     audience: str = "Particuliers"
-    doc_type: str = ""               # « Fiche d'information conditionnée », « Fiche Question-réponse »...
-    date: str = ""                   # date de dernière modification (YYYY-MM-DD)
+    doc_type: str = ""               # publication type, e.g. "Fiche d'information conditionnée"
+    date: str = ""                   # last modification date (YYYY-MM-DD)
     description: str = ""
     sections: list[dict[str, str]] = Field(default_factory=list)  # [{"heading": ..., "text": ...}]
 
@@ -38,32 +41,32 @@ class Chunk(BaseModel):
     doc_id: str
     title: str
     section: str = ""
-    text: str                        # texte brut du passage
+    text: str                        # raw chunk text
     url: str = ""
     theme: str = ""
     date: str = ""
 
     @property
     def indexed_text(self) -> str:
-        """Texte indexé : en-tête contextuel (titre + section) + passage."""
+        """Indexed text: contextual header (title + section) + chunk."""
         header = self.title + (f" — {self.section}" if self.section else "")
         return f"{header}\n{self.text}"
 
 
 class RetrievedChunk(BaseModel):
     chunk: Chunk
-    score: float                     # score final (rerank si actif, sinon RRF)
+    score: float                     # final score (rerank if enabled, RRF otherwise)
     bm25_rank: int | None = None
     dense_rank: int | None = None
     rerank_score: float | None = None
 
 
 class LLMAnswer(BaseModel):
-    """Sortie structurée attendue du LLM (validée par pydantic)."""
-    answerable: bool = Field(description="true si les extraits permettent de répondre")
-    answer: str = Field(description="réponse concise en français, ou explication du refus")
+    """Structured output expected from the LLM (validated with pydantic)."""
+    answerable: bool = Field(description="true if the excerpts contain the answer")
+    answer: str = Field(description="concise answer in French, or the reason for refusing")
     citations: list[str] = Field(default_factory=list,
-                                 description="identifiants des documents cités, ex. ['F1234']")
+                                 description="identifiers of the cited documents, e.g. ['F1234']")
 
 
 class ToolCall(BaseModel):

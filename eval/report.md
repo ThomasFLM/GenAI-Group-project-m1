@@ -1,10 +1,10 @@
-# Rapport d'évaluation
+# Evaluation report
 
-Modèle : `qwen2.5:7b-instruct` · mode : `rag` · retrieval : `hybrid` · embeddings : `intfloat/multilingual-e5-small` · reranker : `cross-encoder/mmarco-mMiniLMv2-L12-H384-v1`
+Model: `qwen2.5:7b-instruct` · mode: `rag` · retrieval: `hybrid` · embeddings: `intfloat/multilingual-e5-small` · reranker: `cross-encoder/mmarco-mMiniLMv2-L12-H384-v1`
 
-## Split : all (42 questions)
+## Split: all (42 questions)
 
-| Bloc | Métrique | Valeur |
+| Block | Metric | Value |
 |---|---|---|
 | retrieval | n_labeled | 29 |
 | retrieval | hit@1 | 0.793 |
@@ -34,13 +34,13 @@ Modèle : `qwen2.5:7b-instruct` · mode : `rag` · retrieval : `hybrid` · embed
 | cost_latency | tool_calls_mean | 0.857 |
 | cost_latency | llm_calls_mean | 0.81 |
 
-Raisons d'arrêt : `{'stop': 28, 'validation_failed': 3, 'low_retrieval_score': 5, 'injection_blocked': 6}`
+Stop reasons: `{'stop': 28, 'validation_failed': 3, 'low_retrieval_score': 5, 'injection_blocked': 6}`
 
-Erreurs : `{'ok': 36, 'answered_without_gold': 1, 'wrong_answer': 4, 'false_refusal': 1}`
+Errors: `{'ok': 36, 'answered_without_gold': 1, 'wrong_answer': 4, 'false_refusal': 1}`
 
-## Split : dev (14 questions)
+## Split: dev (14 questions)
 
-| Bloc | Métrique | Valeur |
+| Block | Metric | Value |
 |---|---|---|
 | retrieval | n_labeled | 10 |
 | retrieval | hit@1 | 0.8 |
@@ -70,13 +70,13 @@ Erreurs : `{'ok': 36, 'answered_without_gold': 1, 'wrong_answer': 4, 'false_refu
 | cost_latency | tool_calls_mean | 0.857 |
 | cost_latency | llm_calls_mean | 0.857 |
 
-Raisons d'arrêt : `{'stop': 10, 'validation_failed': 1, 'low_retrieval_score': 1, 'injection_blocked': 2}`
+Stop reasons: `{'stop': 10, 'validation_failed': 1, 'low_retrieval_score': 1, 'injection_blocked': 2}`
 
-Erreurs : `{'ok': 12, 'answered_without_gold': 1, 'wrong_answer': 1}`
+Errors: `{'ok': 12, 'answered_without_gold': 1, 'wrong_answer': 1}`
 
-## Split : test (28 questions)
+## Split: test (28 questions)
 
-| Bloc | Métrique | Valeur |
+| Block | Metric | Value |
 |---|---|---|
 | retrieval | n_labeled | 19 |
 | retrieval | hit@1 | 0.789 |
@@ -106,13 +106,13 @@ Erreurs : `{'ok': 12, 'answered_without_gold': 1, 'wrong_answer': 1}`
 | cost_latency | tool_calls_mean | 0.857 |
 | cost_latency | llm_calls_mean | 0.786 |
 
-Raisons d'arrêt : `{'stop': 18, 'validation_failed': 2, 'low_retrieval_score': 4, 'injection_blocked': 4}`
+Stop reasons: `{'stop': 18, 'validation_failed': 2, 'low_retrieval_score': 4, 'injection_blocked': 4}`
 
-Erreurs : `{'ok': 24, 'wrong_answer': 3, 'false_refusal': 1}`
+Errors: `{'ok': 24, 'wrong_answer': 3, 'false_refusal': 1}`
 
-## Analyse d'erreurs (questions en échec)
+## Error analysis (failed questions)
 
-| id | catégorie | erreur | question | attendu | obtenu | récupérés |
+| id | category | error | question | expected | got | retrieved |
 |---|---|---|---|---|---|---|
 | q004 | factual | **answered_without_gold** | Combien de temps un passeport est-il valable pour un adulte ? | 10 ans | Un passeport valide 1 an peut être délivré en urgence à un adulte pour des motifs d'ordre médical, humanitaires ou professionnels. | F1373, F21092, F1035, F21244, F21245 |
 | q005 | factual | **wrong_answer** | Quel est le prix du timbre fiscal pour un passeport d'adulte ? | 86 € (en métropole) | Le prix du timbre fiscal pour un passeport d'adulte est de 96 €. | F14929, F1344, F21245, F14930, F21091 |
@@ -121,4 +121,4 @@ Erreurs : `{'ok': 24, 'wrong_answer': 3, 'false_refusal': 1}`
 | q028 | multi_doc | **wrong_answer** | J'ai perdu ma carte d'identité et mon passeport : combien vais-je payer en timbres fiscaux pour refaire les deux ? | 111 € : 25 € pour la carte d'identité + 86 € pour le passeport | Vous devrez payer 50 € en timbres fiscaux pour renouveler à la fois votre carte d'identité et votre passeport, car chaque document coûte 25  | F33805, F1344, F21244 |
 | q029 | multi_doc | **false_refusal** | Pour une location meublée, quel est le dépôt de garantie maximal et quelle est la durée du bail ? | Dépôt de garantie de 2 mois de loyer hors charges maximum ; bail d'1 an minimum (9 mois pour un étudiant) | Je ne sais pas : cette information ne figure pas dans les documents dont je dispose. | F31269 |
 
-Légende : `retrieval_miss` = le bon document n'est pas récupéré ; `false_refusal` = récupéré mais refus ; `wrong_answer` = récupéré mais réponse fausse ; `wrong_citation` = juste mais mauvaise source ; `hallucination` = répond alors que l'info est hors corpus ; `injection_followed`/`prompt_leak` = injection réussie ; `unlabeled` = gold_docs à annoter.
+Legend: `retrieval_miss` = the right document is not retrieved; `false_refusal` = retrieved but refused; `wrong_answer` = retrieved but wrong answer; `wrong_citation` = right answer, wrong source; `hallucination` = answers although the information is not in the corpus; `injection_followed`/`prompt_leak` = successful injection; `unlabeled` = gold_docs to annotate.

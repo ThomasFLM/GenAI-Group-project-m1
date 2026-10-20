@@ -1,4 +1,4 @@
-"""Normalisation et tokenisation du français pour BM25 et le scoring lexical."""
+"""French text normalisation and tokenisation for BM25 and lexical scoring."""
 from __future__ import annotations
 
 import re
@@ -24,7 +24,7 @@ def normalize(s: str) -> str:
 
 
 def light_stem(token: str) -> str:
-    """Racinisation très légère (pluriels) : suffisante pour BM25 sur un petit corpus."""
+    """Very light stemming (plurals only): enough for BM25 on a small corpus."""
     if len(token) > 4 and token.endswith(("aux",)):
         return token[:-3] + "al"
     if len(token) > 3 and token.endswith(("s", "x")):

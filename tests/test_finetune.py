@@ -23,7 +23,7 @@ def test_generate_queries_and_resume(retriever, tmp_path):
     assert generate_queries(chunks, llm, out, per_chunk=2, workers=2) == 6
     rows = [json.loads(line) for line in out.read_text(encoding="utf-8").splitlines()]
     assert {r["chunk_id"] for r in rows} == {c.chunk_id for c in chunks}
-    # relance : les passages déjà traités ne sont pas redemandés
+    # rerun: chunks already processed are not requested again
     assert generate_queries(chunks, llm, out, per_chunk=2) == 0
     assert llm.calls == 3
 
@@ -35,7 +35,7 @@ def test_mine_hard_negatives_excludes_same_document(retriever):
     by_id = {c.chunk_id: c for c in retriever.chunks}
     assert m["candidates"] and m["negatives"]
     assert all(by_id[n].doc_id != "F0002" for n in m["negatives"])
-    assert [c for c in m["candidates"] if by_id[c].doc_id != "F0002"] == m["negatives"]  # ordre conservé
+    assert [c for c in m["candidates"] if by_id[c].doc_id != "F0002"] == m["negatives"]  # order preserved
 
 
 def test_drop_golden_overlap():

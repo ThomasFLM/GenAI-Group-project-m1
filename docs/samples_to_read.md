@@ -1,4 +1,4 @@
-# 20 documents et 20 passages tirés au hasard (seed 0)
+# 20 documents and 20 chunks drawn at random (seed 0)
 
 ## Documents
 
@@ -393,7 +393,7 @@ Si la société est en constitution, vous devez présenter un des documents suiv
 ## Entreprise individuelle
 Vous devez présenter les 2 do
 
-## Passages
+## Chunks
 
 ### F2026#6 — Recours devant le juge administratif / Comment saisir la juridiction administrative ?
 
