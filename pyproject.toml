@@ -17,6 +17,10 @@ dependencies = [
 [project.optional-dependencies]
 api = ["anthropic>=1.0"]
 ui = ["streamlit>=1.38"]
+train = [
+    "accelerate>=1.15.0",
+    "datasets>=5.1.0",
+]
 
 [dependency-groups]
 dev = ["pytest>=8", "lxml>=5"]

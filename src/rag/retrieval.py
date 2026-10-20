@@ -9,7 +9,7 @@ from pathlib import Path
 import numpy as np
 from rank_bm25 import BM25Okapi
 
-from .config import CHUNKS_PATH, INDEX_DIR, Settings, _env_int
+from .config import CHUNKS_PATH, INDEX_DIR, ROOT, Settings, _env_int
 from .schemas import Chunk, RetrievedChunk
 from .text import tokenize
 
@@ -22,7 +22,9 @@ class SentenceTransformerEmbedder:
         from sentence_transformers import SentenceTransformer
 
         self.model_name = model_name
-        self.model = SentenceTransformer(model_name)
+        # Modèle affiné local (ex. models/e5-small-servicepublic) : chemin relatif à la racine du dépôt
+        local = ROOT / model_name
+        self.model = SentenceTransformer(str(local) if local.is_dir() else model_name)
         self.is_e5 = "e5" in model_name.lower()
 
     def encode(self, texts: list[str], kind: str = "passage", batch_size: int | None = None) -> np.ndarray:
@@ -61,7 +63,8 @@ class CrossEncoderReranker:
         from sentence_transformers import CrossEncoder
 
         self.model_name = model_name
-        self.model = CrossEncoder(model_name, max_length=512)
+        local = ROOT / model_name  # reranker affiné local (ex. models/mmarco-reranker-servicepublic)
+        self.model = CrossEncoder(str(local) if local.is_dir() else model_name, max_length=512)
 
     def score(self, query: str, texts: list[str]) -> list[float]:
         if not texts:

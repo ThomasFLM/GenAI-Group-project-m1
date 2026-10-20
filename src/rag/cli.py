@@ -6,6 +6,9 @@
   uv run python -m rag.cli index                         # découpage + embeddings
   uv run python -m rag.cli ask "Quel est le délai pour contester une amende ?" [--mode agent]
   uv run python -m rag.cli suggest-gold                  # aide à annoter gold_docs du golden set
+  uv run python -m rag.cli gen-queries --n-chunks 2500   # questions synthétiques pour l'affinage
+  uv run --extra train python -m rag.cli finetune        # affine les embeddings -> models/e5-small-servicepublic
+  uv run --extra train python -m rag.cli finetune-reranker   # affine le reranker (négatifs difficiles)
 """
 from __future__ import annotations
 
@@ -132,6 +135,75 @@ def cmd_suggest_gold(args):
             print(f"   {r.chunk.doc_id:8} {r.chunk.title[:70]}  [{r.chunk.section[:40]}]")
 
 
+def cmd_gen_queries(args):
+    from .finetune import generate_queries, select_chunks
+    from .llm import OllamaClient
+    from .retrieval import load_chunks
+
+    s = get_settings()
+    # Contexte court : un passage + la consigne tiennent en ~600 tokens ; moins de VRAM par requête parallèle
+    llm = OllamaClient(args.model or s.ollama_model, s.ollama_host, temperature=0.7, num_ctx=2048,
+                       max_output_tokens=200)
+    chunks = select_chunks(load_chunks(CHUNKS_PATH), args.n_chunks, seed=args.seed)
+    print(f"{len(chunks)} passages tirés · modèle {llm.model} · {args.workers} requêtes en parallèle · "
+          f"sortie {args.out}")
+    n = generate_queries(chunks, llm, Path(args.out), per_chunk=args.per_chunk, workers=args.workers)
+    print(f"{n} questions ajoutées -> {args.out}")
+
+
+def cmd_finetune(args):
+    from .finetune import drop_golden_overlap, finetune_embedder
+    from .retrieval import load_chunks
+
+    s = get_settings()
+    with open(args.queries, encoding="utf-8") as f:
+        pairs = [json.loads(line) for line in f if line.strip()]
+    golden = [json.loads(line)["question"] for line in GOLDEN.read_text(encoding="utf-8").splitlines() if line.strip()]
+    kept = drop_golden_overlap(pairs, golden)
+    print(f"{len(pairs)} paires, {len(pairs) - len(kept)} retirées car trop proches du golden set")
+    info = finetune_embedder(kept, load_chunks(CHUNKS_PATH), args.base_model or s.embedding_model, Path(args.out),
+                             epochs=args.epochs, batch_size=args.batch_size, lr=args.lr)
+    info["n_dropped_golden_overlap"] = len(pairs) - len(kept)
+    (Path(args.out) / "train_info.json").write_text(json.dumps(info, ensure_ascii=False, indent=2), encoding="utf-8")
+    b, a = info["val_before"], info["val_after"]
+    for key in ("val_cosine_accuracy@1", "val_cosine_accuracy@5", "val_cosine_mrr@10"):
+        print(f"{key:24} {b.get(key, 0):.3f} -> {a.get(key, 0):.3f}")
+    print(f"Modèle -> {args.out}\nÉtape suivante : $env:EMBEDDING_MODEL=\"{args.out}\" puis `rag.cli index`")
+
+
+def cmd_finetune_reranker(args):
+    from .finetune import drop_golden_overlap, finetune_reranker, mine_hard_negatives
+    from .retrieval import HybridRetriever, load_chunks
+
+    s = get_settings()
+    mined_path = Path(args.mined)
+    if mined_path.exists():
+        with open(mined_path, encoding="utf-8") as f:
+            mined = [json.loads(line) for line in f if line.strip()]
+        print(f"{len(mined)} questions avec négatifs déjà extraits ({mined_path})")
+    else:
+        with open(args.queries, encoding="utf-8") as f:
+            pairs = [json.loads(line) for line in f if line.strip()]
+        golden = [json.loads(line)["question"] for line in GOLDEN.read_text(encoding="utf-8").splitlines()
+                  if line.strip()]
+        kept = drop_golden_overlap(pairs, golden)
+        print(f"{len(pairs)} paires, {len(pairs) - len(kept)} retirées car trop proches du golden set")
+        # Négatifs difficiles = candidats de la recherche hybride telle qu'elle tourne en production (sans reranker)
+        retriever = HybridRetriever.load(get_settings(use_reranker=False))
+        mined = mine_hard_negatives(kept, retriever, n_candidates=s.candidates_k)
+        mined_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(mined_path, "w", encoding="utf-8") as f:
+            f.writelines(json.dumps(m, ensure_ascii=False) + "\n" for m in mined)
+        print(f"Négatifs difficiles -> {mined_path}")
+    info = finetune_reranker(mined, load_chunks(CHUNKS_PATH), args.base_model or s.reranker_model, Path(args.out),
+                             n_negatives=args.negatives, epochs=args.epochs, batch_size=args.batch_size, lr=args.lr)
+    b, a = info["val_before"], info["val_after"]
+    for key in ("val_base_mrr@10", "val_mrr@10", "val_ndcg@10", "val_map"):
+        if key in a:
+            print(f"{key:20} {b.get(key, 0):.3f} -> {a.get(key, 0):.3f}")
+    print(f"Modèle -> {args.out}\nÉtape suivante : $env:RERANKER_MODEL=\"{args.out}\" (et recalibrer MIN_RERANK_SCORE)")
+
+
 def main(argv=None):
     p = argparse.ArgumentParser(prog="rag")
     sub = p.add_subparsers(required=True)
@@ -165,6 +237,36 @@ def main(argv=None):
     sp = sub.add_parser("suggest-gold")
     sp.add_argument("--all", action="store_true", help="inclure les questions déjà annotées")
     sp.set_defaults(func=cmd_suggest_gold)
+
+    sp = sub.add_parser("gen-queries")
+    sp.add_argument("--n-chunks", type=int, default=2500)
+    sp.add_argument("--per-chunk", type=int, default=2)
+    sp.add_argument("--model", help="modèle Ollama (défaut : OLLAMA_MODEL)")
+    sp.add_argument("--seed", type=int, default=0)
+    sp.add_argument("--workers", type=int, default=1, help="requêtes parallèles (régler OLLAMA_NUM_PARALLEL)")
+    sp.add_argument("--out", default=str(ROOT / "data" / "train" / "synthetic_queries.jsonl"))
+    sp.set_defaults(func=cmd_gen_queries)
+
+    sp = sub.add_parser("finetune")
+    sp.add_argument("--queries", default=str(ROOT / "data" / "train" / "synthetic_queries.jsonl"))
+    sp.add_argument("--base-model", help="défaut : EMBEDDING_MODEL")
+    sp.add_argument("--out", default="models/e5-small-servicepublic")
+    sp.add_argument("--epochs", type=int, default=1)
+    sp.add_argument("--batch-size", type=int, default=32)
+    sp.add_argument("--lr", type=float, default=2e-5)
+    sp.set_defaults(func=cmd_finetune)
+
+    sp = sub.add_parser("finetune-reranker")
+    sp.add_argument("--queries", default=str(ROOT / "data" / "train" / "synthetic_queries.jsonl"))
+    sp.add_argument("--mined", default=str(ROOT / "data" / "train" / "hard_negatives.jsonl"),
+                    help="cache des négatifs extraits (recalculés s'il est absent)")
+    sp.add_argument("--base-model", help="défaut : RERANKER_MODEL")
+    sp.add_argument("--out", default="models/mmarco-reranker-servicepublic")
+    sp.add_argument("--negatives", type=int, default=4)
+    sp.add_argument("--epochs", type=int, default=1)
+    sp.add_argument("--batch-size", type=int, default=32)
+    sp.add_argument("--lr", type=float, default=2e-5)
+    sp.set_defaults(func=cmd_finetune_reranker)
 
     args = p.parse_args(argv)
     args.func(args)
