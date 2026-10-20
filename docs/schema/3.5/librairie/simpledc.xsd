@@ -1,0 +1,56 @@
+<!-- edited with XMLSpy v2006 rel. 3 U (http://www.altova.com) by SSI/CTI (JOURNAUX OFFICIELS) -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns="http://purl.org/dc/elements/1.1/" targetNamespace="http://purl.org/dc/elements/1.1/" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:annotation>
+		<xs:documentation>
+      Simple DC XML Schema, 2002-10-09
+      by Pete Johnston (p.johnston@ukoln.ac.uk),
+      Carl Lagoze (lagoze@cs.cornell.edu), Andy Powell (a.powell@ukoln.ac.uk),
+      Herbert Van de Sompel (hvdsomp@yahoo.com).
+      This schema defines terms for Simple Dublin Core, i.e. the 15
+      elements from the http://purl.org/dc/elements/1.1/ namespace, with
+      no use of encoding schemes or element refinements.
+      Default content type for all elements is xs:string with xml:lang
+      attribute available.
+
+      Supercedes version of 2002-03-12. 
+      Amended to remove namespace declaration for http://www.w3.org/XML/1998/namespace namespace,
+      and to reference lang attribute via built-in xml: namespace prefix.
+      xs:appinfo also removed.
+    </xs:documentation>
+	</xs:annotation>
+	<xs:import namespace="http://www.w3.org/XML/1998/namespace" schemaLocation="xml.xsd"/>
+	<xs:element name="title" type="xs:string"/>
+	<xs:element name="creator" type="xs:string"/>
+	<xs:element name="subject" type="xs:string"/>
+	<xs:element name="description" type="xs:string"/>
+	<xs:element name="publisher" type="xs:string"/>
+	<xs:element name="contributor" type="xs:string"/>
+	<xs:element name="date" type="xs:string"/>
+	<xs:element name="type" type="xs:string"/>
+	<xs:element name="format" type="xs:string"/>
+	<xs:element name="identifier" type="xs:string"/>
+	<xs:element name="source" type="xs:string"/>
+	<xs:element name="language" type="xs:string"/>
+	<xs:element name="relation" type="xs:string"/>
+	<xs:element name="coverage" type="xs:string"/>
+	<xs:element name="rights" type="xs:string"/>
+	<xs:group name="elementsGroup">
+		<xs:sequence>
+			<xs:element ref="title" minOccurs="0"/>
+			<xs:element ref="creator" minOccurs="0"/>
+			<xs:element ref="subject" minOccurs="0"/>
+			<xs:element ref="description" minOccurs="0"/>
+			<xs:element ref="publisher" minOccurs="0"/>
+			<xs:element ref="contributor" minOccurs="0"/>
+			<xs:element ref="date" minOccurs="0"/>
+			<xs:element ref="type" minOccurs="0"/>
+			<xs:element ref="format" minOccurs="0"/>
+			<xs:element ref="identifier" minOccurs="0"/>
+			<xs:element ref="source" minOccurs="0"/>
+			<xs:element ref="language" minOccurs="0"/>
+			<xs:element ref="relation" minOccurs="0"/>
+			<xs:element ref="coverage" minOccurs="0"/>
+			<xs:element ref="rights" minOccurs="0"/>
+		</xs:sequence>
+	</xs:group>
+</xs:schema>

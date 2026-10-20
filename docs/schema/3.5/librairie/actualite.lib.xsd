@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:import namespace="http://purl.org/dc/elements/1.1/" schemaLocation="simpledc.xsd"/>
+	<xs:include schemaLocation="commun.xsd"/>
+	
+<!-- ###
+	   # Elément constitutifs de l'actualité
+	   ### -->
+		
+	<!-- Echeance -->
+	<xs:element name="Echeance">
+		<xs:complexType mixed="true">
+			<xs:attribute name="type" type="xs:string" use="optional"/>
+			<xs:attribute name="misEnAvant" type="xs:string" use="optional"/>
+			<xs:attribute name="borneTemporelle" use="optional">
+				<xs:simpleType>
+					<xs:restriction base="xs:NCName">
+						<xs:enumeration value="fixe"/>
+						<xs:enumeration value="periode"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:attribute>
+			<!-- @operateur : n'a de sens que dans le contexte @borneTemporelle='fixe' -->
+			<xs:attribute name="operateur" use="optional">
+				<xs:simpleType>
+					<xs:restriction base="xs:NCName">
+						<xs:enumeration value="jusquau"/>
+						<xs:enumeration value="apartirdu"/>
+						<xs:enumeration value="le"/>
+						<xs:enumeration value="avantle"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:attribute>
+			<!-- @date : n'a de sens que dans le contexte @borneTemporelle='fixe' -->
+			<xs:attribute name="date" type="xs:date" use="optional"/>
+			<!-- @dateDebut : n'a de sens que dans le contexte @borneTemporelle='periode' -->
+			<xs:attribute name="dateDebut" type="xs:date" use="optional"/>
+			<!-- @dateFin : n'a de sens que dans le contexte @borneTemporelle='periode' -->
+			<xs:attribute name="dateFin" type="xs:date" use="optional"/>
+		</xs:complexType>
+	</xs:element>
+	
+	<!-- Rubrique
+		 utilisé dans les pages d'accueil des actualités 
+	-->
+	<xs:element name="Rubrique">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="Titre" minOccurs="0" maxOccurs="1" type="xs:string"/>
+				<xs:element ref="Audience" minOccurs="0" maxOccurs="1"/>
+				<xs:choice minOccurs="0" maxOccurs="unbounded">
+					<xs:element ref="RefActualite"/>
+					<xs:element ref="Publicite"/>
+				</xs:choice>
+			</xs:sequence>
+			<xs:attribute name="type" type="xs:string" use="required"/>
+			<!-- titre du thème. Utilisé si @type='theme' -->
+			<xs:attribute name="themeTitre" type="xs:string" use="optional"/>
+			<!-- id du thème. Utilisé si @type='theme' -->
+			<xs:attribute name="themeID" type="xs:string" use="optional"/>
+		</xs:complexType>
+	</xs:element>
+	
+	<!-- Référence à une actualité avec description brève
+	-->
+	<xs:element name="RefActualite">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="Date" minOccurs="1" type="xs:string"/>
+				<xs:element ref="Echeance" minOccurs="0"/>
+				<xs:element name="SurTitre" minOccurs="1" type="xs:string"/>
+				<xs:element name="Titre" minOccurs="1" type="xs:string"/>
+				<xs:element name="Chiffre" minOccurs="0" type="xs:string"/>
+				<xs:element name="LienServicePublic" minOccurs="0" maxOccurs="unbounded">
+					<xs:complexType>
+						<xs:attribute name="ID" type="xs:string" use="required"/>
+						<xs:attribute name="audience" type="xs:string" use="optional"/>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="ImageIllustration" type="TypeLienRessourceInterne" minOccurs="0"/>
+				<xs:element ref="Introduction" minOccurs="0"/>
+			</xs:sequence>
+			<xs:attribute name="LienPublication" type="xs:string" use="required"/>
+			<xs:attribute name="type" type="xs:string" use="required"/>
+			<xs:attribute name="audience" type="xs:string" use="optional"/>
+			<!-- Date de 1ere diffusion publique -->
+			<xs:attribute name="datePremiereMiseEnLigne" type="xs:date"/>
+			<!-- Date de mise à jour (si différente de dateCreation) -->
+			<xs:attribute name="dateMaj" type="xs:date" use="optional"/>
+			<xs:attribute name="aLaUne" type="xs:string" use="optional"/>
+			<xs:attribute name="focus" type="xs:string" use="optional"/>
+			<xs:attribute ref="themes" use="optional"/>
+			<xs:attribute ref="sujets" use="optional"/>
+		</xs:complexType>
+	</xs:element>
+	
+	<!-- ID du ou des thèmes d'appartenance séparés par une virgule 
+			Professionnels	: N24264, N24265, N24266, N24267, N24269, N24268
+			Particuliers	: N19803, N19804, N19805, N19806, N19807, N19808, N19809, N19810, N19811, N19812
+	-->
+	<xs:attribute name="themes" type="xs:string"/>
+
+	<!-- ID du ou des sujets séparés par une virgule
+			Valeurs possibles : conso, loisirs, environnement, citoyen, etrangerFrance, travail, francais, francaisEtranger, impot, independant, logement, salarie, scolarite, sel, social, transport, retraite, famille 
+	-->
+	<xs:attribute name="sujets" type="xs:string"/>
+	
+	<!-- ID du ou des publics cibles séparés par une virgule :
+			Professionnels	: toutPro, agriculteurPecheur, artisan, artiste, autoEntrepreneur, commercant, industriel, professionLiberale
+			Particuliers	: toutPublic, agentPublic, automobiliste, consommateur, contribuable, demandeurEmploi, etrangerFrance, etudiant, europeenFrance, francais, francaisEtranger, jeune, locataire, parent, patient, personneHandicape, proprietaire, salariePrive, senior
+	 -->
+	<xs:attribute name="publics" type="xs:string"/>
+	
+	<!-- Flux
+		 utilisé dans les pages d'accueil des actualités 
+	-->
+	<xs:element name="RubriqueFlux">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="Titre" minOccurs="0" maxOccurs="1" type="xs:string"/>
+				<xs:element ref="Audience" minOccurs="0"/>
+				<xs:element name="RefFlux" minOccurs="0" maxOccurs="unbounded">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="Titre" minOccurs="1" type="xs:string"/>
+							<xs:element name="ImageIllustration" type="TypeLienRessourceInterne" minOccurs="0"/>
+							<xs:element name="LienExterne" type="TypeLienExterne" minOccurs="0"/>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	
+	<!-- Agenda
+		 utilisé dans les lettres d'actualité 
+	-->
+	<xs:element name="RubriqueAgenda">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="Titre" minOccurs="0" maxOccurs="1" type="xs:string"/>
+				<xs:element ref="Audience" minOccurs="0" maxOccurs="1"/>
+				<xs:choice minOccurs="0" maxOccurs="unbounded">
+					<xs:element ref="RefActualite"/>
+					<xs:element ref="Publicite"/>
+				</xs:choice>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	
+	<!-- Publicite
+		 utilisé dans les lettres d'actualité 
+	-->
+	<xs:element name="RubriquePublicite">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="Titre" minOccurs="0" maxOccurs="1" type="xs:string"/>
+				<xs:element ref="Publicite" minOccurs="0" maxOccurs="unbounded"/>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="Publicite">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="SurTitre" minOccurs="0" type="xs:string"/>
+				<xs:element name="Titre" minOccurs="1" type="xs:string"/>
+				<xs:element name="ImageIllustration" type="TypeLienRessourceInterne" minOccurs="0"/>
+				<xs:element name="LienExterne" type="TypeLienExterne" minOccurs="0"/>
+				<xs:element ref="Introduction" minOccurs="0"/>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+
+</xs:schema>

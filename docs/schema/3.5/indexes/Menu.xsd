@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:import namespace="http://purl.org/dc/elements/1.1/" schemaLocation="../librairie/simpledc.xsd"/>
+	<xs:include schemaLocation="../librairie/commun.xsd"/>
+	
+	<xs:group name="items">
+		<xs:annotation>
+			<xs:documentation>Groupe contenant des éléments d'édition</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:choice maxOccurs="unbounded">
+				<xs:element name="ItemMenu">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="Titre" minOccurs="0" maxOccurs="1" type="xs:string"/>
+							<xs:group ref="items" minOccurs="0" maxOccurs="unbounded"/>
+							<!-- les VoirAussi ne peuvent être rencontrés qu'au premier niveau (type="Theme")  -->
+							<xs:element ref="VoirAussi" minOccurs="0"/>
+						</xs:sequence>
+						<!-- @type : type de l'élément pointé
+								valeurs possibles : [Theme|Sous-theme|Dossier]
+						-->
+						<xs:attribute name="type" type="xs:string" use="required"/>
+						<!-- @ID : id de l'élément pointé -->
+						<xs:attribute name="ID" type="xs:string" use="required"/>
+					</xs:complexType>
+				</xs:element>
+			</xs:choice>
+		</xs:sequence>
+	</xs:group>
+	
+	<xs:element name="Menu">
+		<xs:annotation>
+			<xs:documentation>Schéma représentant l'arborescence de plus haut niveau : thème, sous-thème, dossiers</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="dc:date"/>
+				<xs:element ref="Audience" minOccurs="0" maxOccurs="unbounded"/>
+				<xs:group ref="items" minOccurs="0" maxOccurs="unbounded"/>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>

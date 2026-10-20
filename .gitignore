@@ -20,6 +20,8 @@ data/raw/*
 !data/raw/.gitkeep
 data/processed/*
 !data/processed/.gitkeep
+# Négatifs difficiles : régénérés par `rag.cli finetune-reranker` (seules les questions synthétiques sont suivies)
+data/train/hard_negatives.jsonl
 
 # Index et modèles générés
 *.faiss
@@ -33,3 +35,10 @@ models/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Index RAG généré (et copies de comparaison, ex. data/index_base/)
+data/index/
+data/index_*/
+
+# Sorties d'expériences intermédiaires (garder eval/results.jsonl, metrics.json, report.md du run final)
+eval/runs/

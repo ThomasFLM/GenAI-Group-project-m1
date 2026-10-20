@@ -1,0 +1,647 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:include schemaLocation="commun.hierarchie.xsd"/>
+	<xs:include schemaLocation="commun.texte.xsd"/>
+
+	<!-- ###
+			 # Service complementaire / Cout
+			 ### -->
+	<xs:element name="Cout">
+		<xs:complexType>
+			<xs:group ref="GroupeContenu"/>
+		</xs:complexType>
+	</xs:element>
+
+	<!-- ###
+	   # Service complementaire / NbEtapes
+	   ### -->
+	<xs:element name="NbEtapes">
+		<xs:complexType>
+			<xs:group ref="GroupeContenu"/>
+		</xs:complexType>
+	</xs:element>
+
+	<!-- ###
+	   # Service complementaire / Connexion
+	   ### -->
+	<xs:element name="Connexion">
+		<xs:complexType>
+			<xs:group ref="GroupeContenu"/>
+		</xs:complexType>
+	</xs:element>
+
+	<!-- ###
+	   # Service complementaire / Langue
+	   ### -->
+	<xs:element name="Langue">
+		<xs:complexType>
+			<xs:group ref="GroupeContenu"/>
+		</xs:complexType>
+	</xs:element>
+
+
+	<!-- ###
+			 # Element Reference
+			 ### -->
+	<xs:element name="Reference">
+		<xs:annotation>
+			<xs:documentation>Textes de référence et Circulaires</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="Condition" minOccurs="0"/>
+				<xs:element name="Titre" type="xs:string"/>
+				<xs:element name="Source" minOccurs="0">
+					<xs:complexType mixed="true">
+						<xs:attribute name="ID" type="xs:string" use="required"/>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="Complement" minOccurs="0" type="xs:string"/>
+			</xs:sequence>
+			<xs:attribute name="type" type="xs:string" use="required"/>
+			<xs:attribute name="URL" type="xs:string" use="required"/>
+			<xs:attribute name="ID" type="xs:string" use="required"/>
+			<xs:attribute name="audience" type="xs:string" use="optional"/>
+			<xs:attribute name="commentaireLien" type="xs:string" use="optional"/>
+			<xs:attribute name="langue" type="xs:string" use="optional"/><!-- code ISO639 ou RFC1766 -->
+			<xs:attribute name="format" type="xs:string" use="optional"/><!-- mimeType -->
+			<xs:attribute name="poids" type="xs:string" use="optional"/><!-- unite : ko -->
+		</xs:complexType>
+	</xs:element>
+	
+<!-- ###
+	   # Element Avertissement
+	   ### -->
+	<xs:element name="Avertissement">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="Titre" type="xs:string" minOccurs="0"/>
+				<xs:element ref="Texte"/>
+			</xs:sequence>
+			<xs:attribute name="date" type="xs:date" use="optional"/>
+			<xs:attribute name="ID" type="xs:string" use="optional"/>
+		</xs:complexType>
+	</xs:element>
+
+<!-- ###
+		 # Element QuiPeutMAider
+		 ### -->
+	<xs:element name="QuiPeutMAider">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="Condition" minOccurs="0"/>
+				<xs:element name="Titre" type="xs:string"/>
+				<xs:element name="Complement" type="xs:string" minOccurs="0"/>
+				<xs:element name="PivotLocal" type="xs:string" minOccurs="0"/>
+				<xs:element name="RessourceWeb" minOccurs="0" maxOccurs="unbounded">
+					<xs:complexType>
+						<xs:attribute name="URL" type="xs:string" use="required"/>
+						<xs:attribute name="commentaireLien" type="xs:string" use="optional"/>
+						<xs:attribute name="langue" type="xs:string" use="optional"/><!-- code ISO639 ou RFC1766 -->
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="Source" minOccurs="0">
+					<xs:complexType mixed="true">
+						<xs:attribute name="ID" type="xs:string" use="required"/>
+					</xs:complexType>
+				</xs:element>
+				<xs:element ref="IntroductionSimple" minOccurs="0"/>
+				<xs:element ref="Avertissement" minOccurs="0"/>
+				<xs:element ref="Texte" minOccurs="0"/>
+			</xs:sequence>
+			<xs:attribute name="type" type="xs:string" use="required"/>
+			<xs:attribute name="ID" type="xs:string" use="required"/>
+			<xs:attribute name="principal" type="xs:boolean" use="optional"/><!-- false par défaut -->
+			<xs:attribute name="audience" type="xs:string" use="optional"/>
+			<xs:attribute name="modalite" type="xs:string" use="optional"/><!-- Utilisé uniquement dans l'export SP [enLigne, surPlace,parCorres] -->
+			<xs:attribute name="indisponible" type="xs:boolean" use="optional">
+				<xs:annotation>
+					<xs:documentation>Prend la valeur "true" si le service est indisponible. Dans tous les autres cas, le service est considéré comme disponible</xs:documentation>
+				</xs:annotation>
+			</xs:attribute>
+		</xs:complexType>
+	</xs:element>
+	
+<!-- ###
+	   # Element OuSAdresser
+	   ### -->
+	<xs:element name="OuSAdresser">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="Condition" minOccurs="0"/>
+				<xs:element name="Titre" type="xs:string"/>
+				<xs:element name="Complement" type="xs:string" minOccurs="0"/>
+				<xs:element name="PivotLocal" type="xs:string" minOccurs="0"/>
+				<xs:element name="RessourceWeb" minOccurs="0" maxOccurs="unbounded">
+					<xs:complexType>
+						<xs:attribute name="URL" type="xs:string" use="required"/>
+						<xs:attribute name="commentaireLien" type="xs:string" use="optional"/>
+						<xs:attribute name="langue" type="xs:string" use="optional"/><!-- code ISO639 ou RFC1766 -->
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="Source" minOccurs="0">
+					<xs:complexType mixed="true">
+						<xs:attribute name="ID" type="xs:string" use="required"/>
+					</xs:complexType>
+				</xs:element>
+				<xs:element ref="IntroductionSimple" minOccurs="0"/>
+				<xs:element ref="Avertissement" minOccurs="0"/>
+				<xs:element ref="Texte" minOccurs="0"/>
+			</xs:sequence>
+			<xs:attribute name="type" type="xs:string" use="required"/>
+			<xs:attribute name="ID" type="xs:string" use="required"/>
+			<xs:attribute name="principal" type="xs:boolean" use="optional"/><!-- false par défaut -->
+			<xs:attribute name="audience" type="xs:string" use="optional"/>
+			<xs:attribute name="modalite" type="xs:string" use="optional"/><!-- Utilisé uniquement dans l'export SP [enLigne, surPlace,parCorres] -->
+			<xs:attribute name="indisponible" type="xs:boolean" use="optional">
+				<xs:annotation>
+					<xs:documentation>Prend la valeur "true" si le service est indisponible. Dans tous les autres cas, le service est considéré comme disponible</xs:documentation>
+				</xs:annotation>
+			</xs:attribute>
+		</xs:complexType>
+	</xs:element>
+	
+<!-- ###
+	   # Element ListeOuSAdresser
+	   ### -->
+	<xs:element name="ListeOuSAdresser">
+		<xs:complexType>
+			<xs:annotation>
+				<xs:documentation>Liste de OuSAdresser</xs:documentation>
+			</xs:annotation>
+			<xs:sequence>
+				<xs:element ref="OuSAdresser" maxOccurs="unbounded"/>
+			</xs:sequence>
+			</xs:complexType>
+	</xs:element>
+	
+<!-- ###
+	   # Element OuSAdresserSupport
+	   ### -->
+	<xs:element name="OuSAdresserSupport">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="Condition" minOccurs="0"/>
+				<xs:element name="Titre" type="xs:string"/>
+				<xs:element name="Complement" type="xs:string" minOccurs="0"/>
+				<xs:element name="PivotLocal" type="xs:string" minOccurs="0"/>
+				<xs:element name="RessourceWeb" minOccurs="0" maxOccurs="unbounded">
+					<xs:complexType>
+						<xs:attribute name="URL" type="xs:string" use="required"/>
+						<xs:attribute name="commentaireLien" type="xs:string" use="optional"/>
+						<xs:attribute name="langue" type="xs:string" use="optional"/><!-- code ISO639 ou RFC1766 -->
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="Source" minOccurs="0">
+					<xs:complexType mixed="true">
+						<xs:attribute name="ID" type="xs:string" use="required"/>
+					</xs:complexType>
+				</xs:element>
+				<xs:element ref="Texte" minOccurs="0"/>
+			</xs:sequence>
+			<xs:attribute name="type" type="xs:string" use="required"/>
+			<xs:attribute name="ID" type="xs:string" use="required"/>
+			<xs:attribute name="audience" type="xs:string" use="optional"/>
+			<xs:attribute name="principal" type="xs:boolean" use="optional"/><!-- false par défaut -->
+		</xs:complexType>
+	</xs:element>
+	
+<!-- ###
+	   # Element ServiceEnLigne
+	   ### -->
+	<xs:element name="ServiceEnLigne">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="Condition" minOccurs="0"/>
+				<xs:element name="Titre" minOccurs="0" type="xs:string"/>
+				<xs:element name="TitreAlternatif" minOccurs="0" type="xs:string"/>
+				<xs:choice minOccurs="0" maxOccurs="unbounded">
+					<xs:element ref="LienWeb" minOccurs="0" maxOccurs="unbounded"/>
+					<xs:element name="LienRessource" type="TypeLienRessourceInterne" minOccurs="0" maxOccurs="unbounded"/>
+				</xs:choice>
+				<xs:element name="Source" minOccurs="0">
+					<xs:complexType mixed="true">
+						<xs:attribute name="ID" type="xs:string" use="required"/>
+					</xs:complexType>
+				</xs:element>
+				<xs:element ref="Introduction" minOccurs="0"/>
+				<xs:element ref="Avertissement" minOccurs="0"/>
+				<xs:element ref="Texte" minOccurs="0"/>
+				<xs:element name="PivotLocal" type="xs:string" minOccurs="0"/>
+				<!-- déprécié (et redondant) par rapport à Connexion (laissé pour compatibilité ascendante) -->
+				<xs:element name="FranceConnect" type="xs:boolean" minOccurs="0" default="false"/>
+				<xs:element ref="Connexion" minOccurs="0"/>
+				<!-- "NoticeLiee" déprécié à ce niveau : pas d'usage dans les nouveraux SELF -->
+				<xs:element ref="NoticeLiee" minOccurs="0" maxOccurs="unbounded"/>
+				<xs:element ref="ServiceEnLigneAnnexe" minOccurs="0" maxOccurs="unbounded"/>
+			</xs:sequence>
+			<xs:attribute name="type" type="xs:string" use="required"/>
+			<xs:attribute name="date" type="xs:date" use="optional"/><!-- Date de mise à jour. Format : yyyy-MM-dd -->
+			<xs:attribute name="URL" type="xs:string" use="optional"/>
+			<!-- URLcerfaGuide déprécié (absent des nouveaux SELF) -->
+			<xs:attribute name="URLcerfaGuide" type="xs:string" use="optional"/>
+			<xs:attribute name="langue" type="xs:string" use="optional"/><!-- code ISO639 ou RFC1766 -->
+			<xs:attribute name="format" type="xs:string" use="optional"/><!-- mimeType -->
+			<xs:attribute name="poids" type="xs:string" use="optional"/><!-- unite : ko -->
+			<xs:attribute name="commentaireLien" type="xs:string" use="optional"/>
+			<xs:attribute name="numerocerfa" type="xs:string" use="optional"/>
+			<xs:attribute name="autrenumero" type="xs:string" use="optional"/>
+			<xs:attribute name="ID" type="xs:string" use="required"/>
+			<xs:attribute name="selfPrincipal" type="xs:boolean" use="optional"/><!-- false par défaut -->
+			<xs:attribute name="selfEmbarque" type="xs:boolean" use="optional">
+				<xs:annotation>
+					<xs:documentation>affiche le simulateur dans un cadre (iFrame)</xs:documentation>
+				</xs:annotation>
+			</xs:attribute><!-- false par défaut -->
+			<xs:attribute name="embarqueHauteur" type="xs:positiveInteger" use="optional">
+				<xs:annotation>
+					<xs:documentation>la taille du cadre (iFrame) en pixels  dans lequel est affiché le simulateur</xs:documentation>
+				</xs:annotation>
+			</xs:attribute>
+			<xs:attribute name="embarqueHauteurMobile" type="xs:positiveInteger" use="optional">
+				<xs:annotation>
+					<xs:documentation>la taille du cadre (iFrame) en pixels dans lequel est affiché le simulateur sur les devices mobiles</xs:documentation>
+				</xs:annotation>
+			</xs:attribute>
+			<xs:attribute name="audience" type="xs:string" use="optional"/>
+			<xs:attribute name="modalite" type="xs:string" use="optional"/><!-- Utilisé uniquement dans l'export SP [enLigne, surPlace,parCorres] -->
+			<xs:attribute name="indisponible" type="xs:boolean" use="optional">
+				<xs:annotation>
+					<xs:documentation>Prend la valeur "true" si le service est indisponible. Dans tous les autres cas, le service est considéré comme disponible</xs:documentation>
+				</xs:annotation>
+			</xs:attribute>
+		</xs:complexType>
+	</xs:element>
+	
+<!-- ###
+	   # Element ServiceEnLigneAnnexe
+	   ### -->
+	<xs:element name="ServiceEnLigneAnnexe">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="Titre" minOccurs="0" type="xs:string"/>
+				<xs:element name="PivotLocal" type="xs:string" minOccurs="0"/>
+				<!-- déprécié (et redondant) par rapport à Connexion (laissé pour compatibilité ascendante) -->
+				<xs:element name="FranceConnect" type="xs:boolean" minOccurs="0" default="false"/>
+				<xs:element ref="Connexion" minOccurs="0"/>
+				<xs:element ref="Introduction" minOccurs="0"/>
+				<xs:element ref="LienWeb" minOccurs="0"/>
+				<xs:element ref="Reference" minOccurs="0" maxOccurs="unbounded"/>
+				<!-- "NoticeLiee" déprécié à ce niveau : pas d'usage dans les nouveraux SELF -->
+				<xs:element ref="NoticeLiee" minOccurs="0" maxOccurs="unbounded"/>
+				<xs:element name="AttributionMinisterielle" minOccurs="0" maxOccurs="unbounded"/>
+			</xs:sequence>
+			<xs:attribute name="type" type="xs:string" use="required"/>
+			<!-- groupe : [obligatoire|facultatif|autresPublics] -->
+			<xs:attribute name="groupe" type="xs:string" use="optional"/>
+			<xs:attribute name="numerocerfa" type="xs:string" use="optional"/>
+			<xs:attribute name="ID" type="xs:string" use="optional"/>
+			<xs:attribute name="audience" type="xs:string" use="optional"/>
+		</xs:complexType>
+	</xs:element>
+	
+<!-- ###
+	   # Element PourEnSavoirPlus
+	   ### -->
+	<xs:element name="PourEnSavoirPlus">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="Condition" minOccurs="0"/>
+				<xs:element name="Titre" type="xs:string"/>
+				<xs:element name="ImageIllustration" type="TypeLienRessourceInterne" minOccurs="0"/>
+				<xs:element name="Complement" minOccurs="0" type="xs:string"/>
+				<xs:element name="PivotLocal" type="xs:string" minOccurs="0"/>
+				<xs:element name="Source" minOccurs="0">
+					<xs:complexType mixed="true">
+						<xs:attribute name="ID" type="xs:string" use="optional"/>
+					</xs:complexType>
+				</xs:element>
+			</xs:sequence>
+			<xs:attribute name="type" type="xs:string" use="required"/>
+			<xs:attribute name="commentaireLien" type="xs:string" use="optional"/>
+			<xs:attribute name="URL" type="xs:string" use="optional"/>
+			<xs:attribute name="langue" type="xs:string" use="optional"/><!-- code ISO639 ou RFC1766 -->
+			<xs:attribute name="format" type="xs:string" use="optional"/><!-- mimeType -->
+			<xs:attribute name="poids" type="xs:string" use="optional"/><!-- unite : ko -->
+			<xs:attribute name="numerocerfa" type="xs:string" use="optional"/>
+			<xs:attribute name="autrenumero" type="xs:string" use="optional"/>
+			<xs:attribute name="ID" type="xs:string" use="optional"/>
+			<xs:attribute name="audience" type="xs:string" use="optional"/>
+		</xs:complexType>
+	</xs:element>
+	
+<!-- ###
+	   # Element VoirAussi
+	   ### -->
+	<xs:element name="VoirAussi">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="Dossier" minOccurs="0" maxOccurs="unbounded">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element ref="Condition" minOccurs="0"/>
+							<xs:element name="Titre" type="xs:string"/>
+							<xs:element ref="Theme" minOccurs="0"/>
+						</xs:sequence>
+						<xs:attribute name="ID" type="xs:string" use="required"/>
+						<xs:attribute name="audience" type="xs:string" use="optional"/>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="Fiche" minOccurs="0" maxOccurs="unbounded">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element ref="Condition" minOccurs="0"/>
+							<xs:element name="Titre" type="xs:string"/>
+							<xs:element ref="Theme" minOccurs="0"/>
+						</xs:sequence>
+						<xs:attribute name="ID" type="xs:string" use="required"/>
+						<xs:attribute name="audience" type="xs:string" use="optional"/>
+					</xs:complexType>
+				</xs:element>
+				<!-- exploité uniquement dans le contexte des actualités; absent des contextes Publication et SeviceComplementaire -->
+				<xs:element name="Actualite" minOccurs="0" maxOccurs="unbounded">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="Titre" type="xs:string"/>
+						</xs:sequence>
+						<xs:attribute name="ID" type="xs:string" use="required"/>
+						<xs:attribute name="audience" type="xs:string" use="optional"/>
+					</xs:complexType>
+				</xs:element>
+			</xs:sequence>
+			<xs:attribute name="important" type="xs:string" use="optional"/><!-- oui/non -->
+		</xs:complexType>
+	</xs:element>
+
+
+<!-- ###
+		 # Element FicheConnexe
+		 ### -->
+	<xs:element name="FicheConnexe">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="Condition" minOccurs="0"/>
+				<xs:element name="Titre" type="xs:string"/>
+			</xs:sequence>
+			<xs:attribute name="ID" type="xs:string" use="required"/>
+			<xs:attribute name="audience" type="xs:string" use="optional"/>
+		</xs:complexType>
+	</xs:element>
+
+<!-- ###
+	   # Element Definition
+	   ### -->
+	<xs:element name="Definition">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="Titre" type="xs:string"/>
+				<xs:element ref="Texte"/>
+				<xs:element ref="Reference" minOccurs="0" maxOccurs="1"/>
+			</xs:sequence>
+			<xs:attribute name="ID" type="xs:string" use="required"/>
+		</xs:complexType>
+	</xs:element>
+	
+<!-- ###
+	   # Element Abreviation
+	   ### -->
+	<xs:element name="Abreviation">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="Titre" type="xs:string"/>
+				<xs:element ref="Texte"/>
+			</xs:sequence>
+			<xs:attribute name="ID" type="xs:string" use="required"/>
+			<!-- @type = [sigle|acronyme] -->
+			<xs:attribute name="type" type="xs:string" use="required"/>
+		</xs:complexType>
+	</xs:element>
+	
+<!-- ###
+	   # Element Introduction
+	   ### -->
+	<xs:element name="Introduction">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="Condition" minOccurs="0"/>
+				<xs:choice>
+					<xs:element ref="Texte"/>
+				</xs:choice>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	
+	
+<!-- ###
+	   # Element IntroductionSimple
+	   #	composée de contenu structuré (sans chapitre, ...)
+	   ### -->
+	<xs:element name="IntroductionSimple">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="Condition" minOccurs="0"/>
+				<xs:element name="Titre" minOccurs="0" type="xs:string"/>
+				<xs:choice maxOccurs="unbounded">
+					<xs:group ref="GroupeContenusStructures"/>
+				</xs:choice>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+
+	<!-- ###
+	   # Element ConclusionSimple
+	   #	composée de contenu structuré (sans chapitre, ...)
+	   ### -->
+	<xs:complexType name="ConclusionSimple">
+		<xs:sequence>
+			<xs:element ref="Condition" minOccurs="0"/>
+			<xs:element name="Titre" type="TypeTitreRiche" minOccurs="0"/>
+			<xs:choice maxOccurs="unbounded">
+				<xs:group ref="GroupeContenusStructures"/>
+			</xs:choice>
+		</xs:sequence>
+		<xs:attribute name="type" type="xs:string" use="optional">
+			<xs:annotation>
+				<xs:documentation>
+					important : Important pour l'usager (imprimable, envoyable...)
+				</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+	</xs:complexType>
+
+<!-- ###
+	   # Type lien externe (à SP)
+	   ### -->
+	<xs:complexType name="TypeLienExterne" mixed="true">
+		<xs:annotation>
+			<xs:documentation>Définition d'un lien vers le web</xs:documentation>
+		</xs:annotation>
+		<xs:attribute name="URL" type="xs:string" use="required"/>
+		<xs:attribute name="commentaireLien" type="xs:string" use="optional"/>
+		<xs:attribute name="numerocerfa" type="xs:string" use="optional"/>
+		<xs:attribute name="langue" type="xs:string" use="optional"/><!-- code ISO639 ou RFC1766 -->
+		<xs:attribute name="format" type="xs:string" use="optional"/><!-- mimeType -->
+		<xs:attribute name="poids" type="xs:string" use="optional"/><!-- unite : ko -->
+		<xs:attribute name="type" type="xs:string" use="optional"/><!-- permet de typer le lien pour adapter la mise en forme -->
+	</xs:complexType>
+	
+
+<!-- ###
+	   # Type lien interne : Fiche/Noeud/Satellite dans l'une des audiences
+	   ### -->
+	<xs:complexType name="TypeLienInterne" mixed="true">
+		<xs:annotation>
+			<xs:documentation>Balises pour les liens vers une publication</xs:documentation>
+		</xs:annotation>
+		<xs:attribute name="LienPublication" type="xs:string" use="required"/>
+		<xs:attribute name="type" type="xs:string" use="required"/>
+		<xs:attribute name="audience" type="xs:string" use="optional"/>
+		<xs:attribute name="commentaireLien" type="xs:string" use="optional"/>
+	</xs:complexType>
+	
+<!-- ###
+	   # Type Lien Intra : lien vers un élément déclaré dans le fichier courant
+	   ### -->
+	<xs:complexType name="TypeLienIntra" mixed="true">
+		<xs:annotation>
+			<xs:documentation>Balises pour les références à un élément publié dans la page courante (repéré par son ID)</xs:documentation>
+		</xs:annotation>
+		<xs:attribute name="LienID" type="xs:string" use="required"/>
+		<xs:attribute name="type" type="xs:string" use="required"/>
+		<xs:attribute name="commentaireLien" type="xs:string" use="optional"/>
+	</xs:complexType>
+	
+<!-- ###
+	   # RechercheGuidee
+	   ### -->
+	<xs:element name="RechercheGuidee">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="Titre" type="TypeTitreRiche" minOccurs="0"/>
+			</xs:sequence>
+			<xs:attribute name="ID" type="xs:string" use="required"/>
+			<xs:attribute name="audience" type="xs:string" use="optional"/>
+		</xs:complexType>
+	</xs:element>
+	
+<!-- ###
+	   # Ressource
+	   ### -->
+	<xs:complexType name="TypeLienRessourceInterne">
+		<xs:annotation>
+			<xs:documentation>Définition d'un lien vers une ressource (image, ...)</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:element name="Titre" minOccurs="0" type="xs:string"/>
+			<xs:element ref="IntroductionSimple" minOccurs="0"/>
+			<xs:element name="Legende" minOccurs="0" type="xs:string"/>
+			<xs:element name="Credits" minOccurs="0">
+				<xs:complexType>
+					<xs:choice maxOccurs="unbounded">
+						<xs:element name="Paragraphe" type="TypeTexteStructure" minOccurs="1"/>
+					</xs:choice>
+				</xs:complexType>
+			</xs:element>
+			<xs:element name="TexteDeRemplacement" minOccurs="0" type="xs:string"/>
+			<xs:element name="Description" minOccurs="0">
+				<xs:complexType>
+					<xs:group ref="GroupeContenu"/>
+				</xs:complexType>
+			</xs:element>
+		</xs:sequence>
+		<xs:attribute name="LienPublication" type="xs:string" use="required"/>
+		<xs:attribute name="LienDam" type="xs:string" use="optional">
+			<xs:annotation>
+				<xs:documentation>Si présent, la ressource est fournie par le DAM (flux servicePublic uniquement).
+					Cet attribut définit l'identifiant unique (`damResPath`) permettant d'y retrouver cette ressource.
+					NOTE : à terme, cet attribut a pour vocation, si présent, de remplacer @LienPublication
+				</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+		<xs:attribute name="LienDamVersion" type="xs:string" use="optional">
+			<xs:annotation>
+				<xs:documentation>Caractérise la version de la ressource fournie par l'attribut '@LienDam' de façon immuable (une même version de la ressource ne changera jamais).</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+		<xs:attribute name="type" type="xs:string" use="required"/>
+		<xs:attribute name="commentaireLien" type="xs:string" use="optional"/>
+		<xs:attribute name="langue" type="xs:string" use="optional"/><!-- code ISO639 ou RFC1766 -->
+		<xs:attribute name="format" type="xs:string" use="optional"/><!-- mimeType -->
+		<xs:attribute name="poids" type="xs:string" use="optional"/><!-- unite : ko -->
+		<xs:attribute name="redimensionnable" type="xs:string" use="optional"/><!-- [oui,non] -->
+		<xs:attribute name="nomTelechargement" type="xs:string" use="optional"/><!-- permet d'alimenter le champ 'download' html -->
+	</xs:complexType>
+
+	<xs:complexType name="TypeLienRessourceExterne">
+		<xs:annotation>
+			<xs:documentation>Définition d'un lien vers une ressource externe (video, ...)</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:element name="Titre" minOccurs="0" type="xs:string"/>
+			<xs:element ref="IntroductionSimple" minOccurs="0"/>
+			<xs:element name="Legende" minOccurs="0" type="xs:string"/>
+			<xs:element name="Credits" minOccurs="0">
+				<xs:complexType>
+					<xs:choice maxOccurs="unbounded">
+						<xs:element name="Paragraphe" type="TypeTexteStructure" minOccurs="1"/>
+					</xs:choice>
+				</xs:complexType>
+			</xs:element>
+			<!-- <xs:element name="TexteDeRemplacement" minOccurs="0" type="xs:string"/> -->
+			<xs:element name="Description" minOccurs="0">
+				<xs:complexType>
+					<xs:group ref="GroupeContenu"/>
+				</xs:complexType>
+			</xs:element>
+			<xs:element name="Source" minOccurs="0">
+				<xs:complexType mixed="true">
+					<xs:attribute name="ID" type="xs:string" use="required"/>
+				</xs:complexType>
+			</xs:element>
+		</xs:sequence>
+		<xs:attribute name="URL" type="xs:string" use="required"/>
+		<xs:attribute name="type" type="xs:string" use="required"/>
+		<xs:attribute name="langue" type="xs:string" use="optional"/><!-- code ISO639 ou RFC1766 -->
+		<!-- Fournisseurs : dailyMotion, ina, vimeo, youTube  -->
+		<xs:attribute name="fournisseur" type="xs:string" use="optional"/>
+		<!-- <xs:attribute name="commentaireLien" type="xs:string" use="optional"/> -->
+		<xs:attribute name="format" type="xs:string" use="optional"/><!-- mimeType -->
+		<xs:attribute name="poids" type="xs:string" use="optional"/><!-- unite : ko -->
+		<xs:attribute name="redimensionnable" type="xs:string" use="optional"/><!-- [oui,non] -->
+	</xs:complexType>
+	
+		
+<!-- ###
+	   # Titre riche (contenant du balisage)
+	   ### -->
+	<xs:complexType name="TypeTitreRiche">
+		<xs:sequence minOccurs="0" maxOccurs="1">
+			<xs:annotation>
+				<xs:documentation>Balises deTitre</xs:documentation>
+			</xs:annotation>
+			<xs:element name="Paragraphe" type="TypeTexteStructure"/>
+		</xs:sequence>
+	</xs:complexType>
+	
+<!-- ###
+	   # FAQ
+	   ### -->
+	<xs:element name="FAQ">
+		<xs:complexType>
+			<xs:attribute name="type" type="xs:string" use="required"/>
+			<xs:attribute name="ID" type="xs:string" use="required"/>
+		</xs:complexType>
+	</xs:element>
+	
+<!-- ###
+	   # Date dans l'agenda
+	   ### -->
+	<xs:attribute name="dateAgenda" type="xs:date"/>
+
+
+<!-- ###
+		 # ID du ou des profils pro séparés par une virgule
+		 # Valeurs possibles : tout, mi, ei, societe
+		 ### -->
+  	<xs:attribute name="profilsPro" type="xs:string"/>
+</xs:schema>

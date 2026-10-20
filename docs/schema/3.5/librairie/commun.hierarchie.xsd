@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+<!-- ###
+	   # Element Audience
+	   ### -->
+	<xs:element name="Audience">
+		<xs:complexType mixed="true"/>
+	</xs:element>
+	
+
+<!-- ###
+	   # Element Theme
+	   ### -->
+	<xs:element name="Theme">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="Titre" minOccurs="0" type="xs:string"/>
+				<xs:element ref="Audience" minOccurs="0" maxOccurs="unbounded"/>
+			</xs:sequence>
+			<xs:attribute name="ID" type="xs:string" use="required"/>
+		</xs:complexType>
+	</xs:element>
+	
+<!-- ###
+	   # Element Dossier
+	   ### -->
+	<xs:element name="Dossier">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="Titre" type="xs:string"/>
+				<xs:element ref="Audience" minOccurs="0" maxOccurs="unbounded"/>
+				<xs:element name="Fiche" minOccurs="0" maxOccurs="unbounded">
+					<xs:complexType mixed="true">
+						<xs:attribute name="ID" type="xs:string" use="required"/>
+					</xs:complexType>
+				</xs:element>
+			</xs:sequence>
+			<xs:attribute name="ID" type="xs:string" use="required"/>
+		</xs:complexType>
+	</xs:element>
+	
+<!-- ###
+	   # Element FilDAriane
+	   ### -->
+	<xs:element name="FilDAriane">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="Niveau" maxOccurs="unbounded">
+					<xs:complexType mixed="true">
+						<xs:attribute name="ID" type="xs:string" use="optional"/>
+						<xs:attribute name="type" type="xs:string" use="optional"/>
+					</xs:complexType>
+				</xs:element>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	
+<!-- ###
+	   # Element Canal
+	   ### -->
+	<xs:element name="Canal" type="xs:string"/>
+	
+<!-- ###
+	   # Element Cible
+	   ### -->
+	<xs:element name="Cible" type="xs:string"/>
+	
+<!-- ###
+	   # Element LienWeb
+	   ### -->
+	<xs:element name="LienWeb">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="Source" minOccurs="0" type="xs:string"/>
+			</xs:sequence>
+			<xs:attribute name="URL" type="xs:string" use="required"/>
+			<xs:attribute name="langue" type="xs:string" use="optional"/><!-- code ISO639 ou RFC1766 -->
+			<xs:attribute name="format" type="xs:string" use="optional"/><!-- mimeType -->
+			<xs:attribute name="poids" type="xs:string" use="optional"/><!-- unite : ko -->
+			<xs:attribute name="commentaireLien" type="xs:string" use="optional"/>
+		</xs:complexType>
+	</xs:element>
+	
+<!-- ###
+	   # Elements liés au serviceEnLigne
+	   ### -->
+	<!-- NoticeLiee -->
+	<xs:element name="NoticeLiee">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="Titre" minOccurs="0" type="xs:string"/>
+				<xs:element name="Video" type="TypeLienRessourceExterne" minOccurs="0" maxOccurs="1"/>
+			</xs:sequence>
+			<xs:attribute name="type" type="xs:string" use="required"/><!-- [Notice rédigée, Notice] -->
+			<xs:attribute name="URL" type="xs:string" use="optional"/>
+			<xs:attribute name="langue" type="xs:string" use="optional"/><!-- code ISO639 ou RFC1766 -->
+			<xs:attribute name="format" type="xs:string" use="optional"/><!-- mimeType -->
+			<xs:attribute name="poids" type="xs:string" use="optional"/><!-- unite : ko -->
+			<xs:attribute name="ID" type="xs:string" use="required"/>
+			<xs:attribute name="commentaireLien" type="xs:string" use="optional"/>
+			<xs:attribute name="numerocerfa" type="xs:string" use="optional"/>
+			<xs:attribute name="autrenumero" type="xs:string" use="optional"/>
+		</xs:complexType>
+	</xs:element>
+
+</xs:schema>

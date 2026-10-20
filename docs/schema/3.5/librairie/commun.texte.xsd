@@ -1,0 +1,563 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+
+	
+<!-- ###
+	   # Element Tableau
+	   ### -->
+	<xs:element name="Tableau">
+		<xs:complexType>
+			<xs:annotation>
+				<xs:documentation>Représente un tableau</xs:documentation>
+			</xs:annotation>
+			<xs:sequence>
+				<xs:element name="TitreRiche" minOccurs="0" maxOccurs="1" type="TypeTitreRiche">
+					<xs:annotation>
+						<xs:documentation>Titre du tableau</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="Resume" minOccurs="0" maxOccurs="1">
+					<xs:annotation>
+						<xs:documentation>Description du tableau utile pour l'accessibilité</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:choice maxOccurs="unbounded">
+							<xs:element name="Paragraphe" type="TypeTexteStructure" minOccurs="1"/>
+						</xs:choice>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="Affichage" minOccurs="0" maxOccurs="1">
+					<xs:annotation>
+						<xs:documentation>Précise le comportement d'affichage souhaité (vd)</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:attribute name="linearisation" use="optional">
+							<xs:simpleType>
+								<xs:restriction base="xs:NCName">
+									<xs:enumeration value="ligne"/>
+									<xs:enumeration value="colonne"/>
+								</xs:restriction>
+							</xs:simpleType>
+						</xs:attribute>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="Colonne" minOccurs="1" maxOccurs="unbounded">
+					<xs:annotation>
+						<xs:documentation>Déclaration des colonnes</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:attribute name="largeur" type="xs:nonNegativeInteger" use="optional">
+							<xs:annotation>
+								<xs:documentation>largeur de colonne désirée en em</xs:documentation>
+							</xs:annotation>
+						</xs:attribute>
+						<xs:attribute name="type" type="xs:string" use="optional">
+							<xs:annotation>
+								<xs:documentation>nature de la colonne : [header,normal]</xs:documentation>
+							</xs:annotation>
+						</xs:attribute>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="Rangée" maxOccurs="unbounded">
+					<xs:annotation>
+						<xs:documentation>Rangée d'un tabelau</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="Cellule" minOccurs="0" maxOccurs="unbounded">
+								<xs:annotation>
+									<xs:documentation>Cellule dans une Rangée d'un tableau</xs:documentation>
+								</xs:annotation>
+								<xs:complexType mixed="true">
+									<xs:choice maxOccurs="unbounded">
+										<xs:element name="Paragraphe" type="TypeTexteStructure" minOccurs="0"/>
+										<xs:element ref="Liste" minOccurs="0"/>
+									</xs:choice>
+									<xs:attribute name="fusionHorizontale" type="xs:nonNegativeInteger" use="optional"/>
+									<xs:attribute name="fusionVerticale" type="xs:nonNegativeInteger" use="optional"/>
+									<xs:attribute name="headerID" type="xs:string" use="optional"/><!--  besoin accessibilité :  pour les cellules de type 'header' uniquement] -->
+									<xs:attribute name="refHeaderID" type="xs:string" use="optional"/><!-- besoin accessibilité : pour les cellules de type 'normal' uniquement - liste des ids des headers d'appartenance de la cellule -->
+								</xs:complexType>
+							</xs:element>
+						</xs:sequence>
+						<xs:attribute name="type" type="xs:string" use="optional">
+							<xs:annotation>
+								<xs:documentation>nature de la rangée [header,normal]</xs:documentation>
+							</xs:annotation>
+						</xs:attribute>
+					</xs:complexType>
+				</xs:element>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+
+<!-- ###
+	   # Element Liste
+	   ### -->
+	<xs:element name="Liste">
+		<xs:complexType>
+			<xs:annotation>
+				<xs:documentation>Représente le type d'une Liste</xs:documentation>
+			</xs:annotation>
+			<xs:sequence>
+				<xs:element name="Item" maxOccurs="unbounded">
+					<xs:annotation>
+						<xs:documentation>Représente le Type d'un Item de Liste</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element ref="Condition" minOccurs="0"/>
+							<xs:choice maxOccurs="unbounded">
+								<xs:element name="Paragraphe" type="TypeTexteStructure" minOccurs="0"/>
+								<xs:element name="Image" type="TypeLienRessourceInterne" minOccurs="0"/>
+								<xs:element name="Video" type="TypeLienRessourceExterne" minOccurs="0"/>
+								<xs:element ref="OuSAdresser" minOccurs="0"/>
+								<xs:element ref="ListeOuSAdresser" minOccurs="0"/>
+								<xs:element ref="ServiceEnLigne" minOccurs="0"/>
+								<xs:element ref="PourEnSavoirPlus" minOccurs="0"/>
+								<xs:element ref="Liste" minOccurs="0"/>
+							</xs:choice>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+			</xs:sequence>
+			<!-- type = [numero|puce|caseACocher] si non spécifié : liste à puce -->
+			<xs:attribute name="type" type="xs:string" use="optional"/>
+		</xs:complexType>
+	</xs:element>
+
+<!-- ###
+	   # Element Texte
+	   ### -->
+	<xs:element name="Texte">
+		<xs:complexType>
+			<xs:annotation>
+				<xs:documentation>Représente la classe rédactionnel</xs:documentation>
+			</xs:annotation>
+			<xs:sequence maxOccurs="unbounded">
+				<xs:group ref="GroupeContenusStructures"/>
+				<xs:element name="Chapitre"  minOccurs="0" maxOccurs="unbounded">
+					<xs:annotation>
+						<xs:documentation>Représente un chapitre</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="Titre" type="TypeTitreRiche" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Titre de chapitre</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="TitreAlternatif" type="TypeTitreRiche" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Titre alternatif du chapitre à utiliser si la condition est vérifiée</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element ref="Condition" minOccurs="0"/>
+							<xs:group ref="GroupeContenusStructures" minOccurs="0"/>
+							<xs:element name="SousChapitre" minOccurs="0" maxOccurs="unbounded">
+								<xs:annotation>
+									<xs:documentation>Représente un sous chaptitre</xs:documentation>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="Titre" type="TypeTitreRiche" minOccurs="0">
+											<xs:annotation>
+												<xs:documentation>Titre de sous chapitre</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="TitreAlternatif" type="TypeTitreRiche" minOccurs="0">
+											<xs:annotation>
+												<xs:documentation>Titre alternatif du sous chapitre à utiliser si la condition est vérifiée</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element ref="Condition" minOccurs="0" maxOccurs="1"/>
+										<xs:group ref="GroupeContenusStructures"/>
+									</xs:sequence>
+									<xs:attribute name="type" type="xs:string" use="optional">
+										<xs:annotation>
+											<xs:documentation>
+												pieces : Pièces à fournir
+												important : Important pour l'usager (imprimable, envoyable...)
+											</xs:documentation>
+										</xs:annotation>
+									</xs:attribute>
+									<xs:attribute name="numerote" type="xs:boolean" use="optional">
+										<xs:annotation>
+											<xs:documentation>prend la valeur « true » (champ booleen) si la nature du groupe de ss-chapitres courant est 'Chapitres numérotés' (étapes d'une démarche)</xs:documentation>
+										</xs:annotation>
+									</xs:attribute>
+								</xs:complexType>
+							</xs:element>
+						</xs:sequence>
+						<xs:attribute name="ID" type="xs:string" use="optional"/>
+						<xs:attribute name="type" type="xs:string" use="optional">
+							<xs:annotation>
+								<xs:documentation>
+									pieces : Pièces à fournir
+									important : Important pour l'usager (imprimable, envoyable...)
+								</xs:documentation>
+							</xs:annotation>
+						</xs:attribute>
+						<xs:attribute name="numerote" type="xs:boolean" use="optional">
+							<xs:annotation>
+								<xs:documentation>prend la valeur « true » (champ booleen) si la nature du groupe de chapitres courant est 'Chapitres numérotés (ex : étapes d'une démarche, ...)'</xs:documentation>
+							</xs:annotation>
+						</xs:attribute>
+					</xs:complexType>
+				</xs:element>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	
+
+	
+<!-- ###
+	   # Groupe de contenus structurés
+	   ### -->
+	<xs:group name="GroupeContenusStructures">
+		<xs:annotation>
+			<xs:documentation>Groupe structurant les éléments d'édition élémentaires</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:choice maxOccurs="unbounded">
+				<xs:element name="TitreFlottant" minOccurs="0" type="TypeTitreRiche"/>
+				<xs:element name="Attention" minOccurs="0">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="Titre" type="xs:string" minOccurs="0"/>
+							<xs:group ref="GroupeContenu"/>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="ASavoir"  minOccurs="0">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="Titre" type="xs:string" minOccurs="0"/>
+							<xs:group ref="GroupeContenu"/>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="ANoter" minOccurs="0">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="Titre" type="xs:string" minOccurs="0"/>
+							<xs:group ref="GroupeContenu"/>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="Exemple" minOccurs="0">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="Titre" type="xs:string" minOccurs="0"/>
+							<xs:group ref="GroupeContenu"/>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="Rappel" minOccurs="0">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="Titre" type="xs:string" minOccurs="0"/>
+							<xs:group ref="GroupeContenu"/>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="Consigne" minOccurs="0">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="Titre" type="xs:string" minOccurs="0"/>
+							<xs:group ref="GroupeContenu"/>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+				<xs:element ref="Definition" minOccurs="0"/>
+				<xs:element name="Complement" minOccurs="0">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="Titre" type="xs:string" minOccurs="1"/>
+							<xs:group ref="GroupeContenusStructures"/>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="FragmentConditionne" minOccurs="0">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element ref="Condition" minOccurs="0"/>
+							<xs:group ref="GroupeContenusStructures"/>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+				<xs:element ref="BlocCas" minOccurs="0"/>
+				<xs:element name="Lien" minOccurs="0">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="Titre" type="xs:string"/>
+							<xs:element name="Complement" minOccurs="0" type="xs:string"/>
+							<xs:element name="Source" minOccurs="0">
+								<xs:complexType mixed="true">
+									<xs:attribute name="ID" type="xs:string" use="optional"/>
+								</xs:complexType>
+							</xs:element>
+							<xs:choice minOccurs="1" maxOccurs="1">
+								<xs:sequence>
+									<xs:element name="LienExterne" type="TypeLienExterne" minOccurs="0"/>
+									<xs:element name="LienInterne" type="TypeLienInterne" minOccurs="0"/>
+								</xs:sequence>
+							</xs:choice>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+				<xs:element ref="Reference" minOccurs="0"/>
+				<xs:group ref="GroupeContenu"/>
+			</xs:choice>
+		</xs:sequence>
+	</xs:group>
+	
+	<xs:element name="Condition">
+		<xs:annotation>
+			<xs:documentation>Le ET est implicite sur cet élément</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:group ref="GroupeConditionElts"/>
+		</xs:complexType>
+	</xs:element>
+	<xs:group name="GroupeConditionElts">
+		<xs:sequence>
+			<xs:choice maxOccurs="unbounded" >
+				<xs:element name="estVrai">
+					<xs:complexType>
+						<xs:attribute name="var" type="xs:string" use="required"/>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="estFaux">
+					<xs:complexType>
+						<xs:attribute name="var" type="xs:string" use="required"/>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="estIndefini">
+					<xs:complexType>
+						<xs:attribute name="var" type="xs:string" use="required"/>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="et">
+					<xs:complexType>
+						<xs:group ref="GroupeConditionElts"/>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="ou">
+					<xs:complexType>
+						<xs:group ref="GroupeConditionElts"/>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="non">
+					<xs:annotation>
+						<xs:documentation>Le ET est implicite sur cet élément</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:group ref="GroupeConditionElts"/>
+					</xs:complexType>
+				</xs:element>
+			</xs:choice>
+		</xs:sequence>
+	</xs:group>
+	
+	<xs:element name="BlocCas">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="Cas" maxOccurs="unbounded">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="Titre" type="xs:string"/>
+							<xs:element ref="Condition" minOccurs="0" maxOccurs="1"/>
+							<xs:element name="Introduction" minOccurs="0">
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element ref="Condition" minOccurs="0"/>
+										<xs:choice maxOccurs="unbounded">
+											<xs:group ref="GroupeContenu"/>
+										</xs:choice>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="Aide" minOccurs="0">
+								<xs:complexType>
+									<xs:sequence maxOccurs="unbounded">
+										<xs:group ref="GroupeContenusStructures"/>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+							<xs:group ref="GroupeContenusStructures"/>
+						</xs:sequence>
+						<xs:attribute name="type" type="xs:string" use="optional"/>
+					</xs:complexType>
+				</xs:element>
+			</xs:sequence>
+			<xs:attribute name="type" type="xs:string" use="optional"/><!-- [modalite] -->
+			<!--<xs:attribute name="personnalisable" type="xs:string" use="optional"/> NOTE : jamais renseigné par coperia--><!-- exploité que si @type='modalite' [personnalisé sur SP,personnalisable] -->
+			<xs:attribute name="affichage" type="xs:string" use="required"/><!-- [onglet,radio] -->
+		</xs:complexType>
+	</xs:element>
+<!-- ###
+	   # Groupe de contenu
+	   ### -->
+	<xs:group name="GroupeContenu">
+		<xs:annotation>
+			<xs:documentation>Groupe contenant les éléments d'édition élémentaires</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:choice maxOccurs="unbounded">
+				<xs:element name="Paragraphe" type="TypeTexteStructure" minOccurs="0"/>
+				<xs:element ref="Liste" minOccurs="0"/>
+				<xs:element ref="Tableau" minOccurs="0"/>
+				<xs:element name="Infographie" type="TypeLienRessourceInterne" minOccurs="0"/>
+				<xs:element name="Image" type="TypeLienRessourceInterne" minOccurs="0"/>
+				<xs:element name="Video" type="TypeLienRessourceExterne" minOccurs="0"/>
+				<xs:element name="ContenuIllustre" minOccurs="0">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="Contenu" minOccurs="1">
+								<xs:complexType>
+									<xs:sequence>
+										<xs:choice maxOccurs="unbounded">
+											<xs:element name="Paragraphe" type="TypeTexteStructure" minOccurs="0"/>
+											<xs:element ref="Liste" minOccurs="0"/>
+											<xs:element ref="Tableau" minOccurs="0"/>
+											<xs:element name="Image" type="TypeLienRessourceInterne" minOccurs="0"/>
+											<xs:element name="Video" type="TypeLienRessourceExterne" minOccurs="0"/>
+											<xs:element ref="OuSAdresser" minOccurs="0"/>
+											<xs:element ref="ListeOuSAdresser" minOccurs="0"/>
+											<xs:element ref="ServiceEnLigne" minOccurs="0"/>
+											<xs:element ref="PourEnSavoirPlus" minOccurs="0"/>
+										</xs:choice>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+							<xs:choice minOccurs="1">
+								<xs:element name="ImageIllustration" type="TypeLienRessourceInterne"/>
+								<xs:element name="VideoIllustration" type="TypeLienRessourceExterne"/>
+							</xs:choice>
+						</xs:sequence>
+						<xs:attribute name="positionIllustration" use="required">
+							<xs:simpleType>
+								<xs:restriction base="xs:NCName">
+									<xs:enumeration value="gauche"/>
+									<xs:enumeration value="droite"/>
+								</xs:restriction>
+							</xs:simpleType>
+						</xs:attribute>
+					</xs:complexType>
+				</xs:element>
+				<!-- 
+				<xs:element name="ContenuConditionne" >
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element ref="Condition" minOccurs="0"/>
+							<xs:group ref="GroupeContenu"/>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+				-->
+				<xs:element ref="OuSAdresser" minOccurs="0"/>
+				<xs:element ref="ListeOuSAdresser" minOccurs="0"/>
+				<xs:element ref="ServiceEnLigne" minOccurs="0"/>
+				<xs:element ref="PourEnSavoirPlus" minOccurs="0"/>
+			</xs:choice>
+		</xs:sequence>
+	</xs:group>
+	
+<!-- ###
+	   # Groupe de texte non terminal
+	   ### -->
+	<xs:group name="GroupeTexteNonTerminal">
+		<xs:annotation>
+			<xs:documentation>Groupe des éléments textuels pouvant contenir d'autres éléments textuels ou des éléments terminaux</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:choice minOccurs="0" maxOccurs="unbounded">
+				<xs:element name="Citation" type="TypeTexteStructure" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Balises de citation</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="MiseEnEvidence" type="TypeTexteStructure" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Balises de mise en évidence</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="Expression" type="TypeTexteStructure" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Balises spécifiant une expression</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="TermeEtranger" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Balises spécifiant un terme étranger</xs:documentation>
+					</xs:annotation>
+					<xs:complexType mixed="true">
+						<xs:choice minOccurs="0" maxOccurs="unbounded">
+							<xs:group ref="GroupeTexteTerminal" minOccurs="0"/>
+							<xs:group ref="GroupeTexteNonTerminal" minOccurs="0"/>
+						</xs:choice>
+						<xs:attribute name="langue" type="xs:string" use="optional"/><!-- code ISO639 ou RFC1766 -->
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="Date" minOccurs="0">
+					<xs:complexType mixed="true">
+						<xs:choice minOccurs="0" maxOccurs="unbounded">
+							<xs:group ref="GroupeTexteTerminal" minOccurs="0"/>
+							<xs:group ref="GroupeTexteNonTerminal" minOccurs="0"/>
+						</xs:choice>
+						<xs:attribute name="langue" type="xs:string" use="optional"/><!-- code ISO639 ou RFC1766 -->
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="Variable" type="TypeTexteStructure" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Balises spécifiant une variable</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+			</xs:choice>
+		</xs:sequence>
+	</xs:group>
+	
+<!-- ###
+	   # Groupe de texte terminal
+	   ### -->
+	<xs:group name="GroupeTexteTerminal">
+		<xs:annotation>
+			<xs:documentation>Eléments terminaux de type string</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:choice minOccurs="0" maxOccurs="unbounded">
+				<xs:element name="Valeur" type="xs:string" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>repérage des valeurs : montant, indicateur, ...</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="Indice" type="xs:string" minOccurs="0"/>
+				<xs:element name="Exposant" type="xs:string" minOccurs="0"/>
+				<xs:element name="Tel" type="xs:string" minOccurs="0"/>
+				<xs:element name="LienExterne" type="TypeLienExterne" minOccurs="0"/>
+				<xs:element name="LienInterne" type="TypeLienInterne" minOccurs="0"/>
+				<xs:element name="LienIntra" type="TypeLienIntra" minOccurs="0"/>
+				<xs:element name="LienRessource" type="TypeLienRessourceInterne" minOccurs="0"/>
+				<xs:element name="MathTex" type="xs:string" minOccurs="0"/>
+				<xs:element name="Image" type="TypeLienRessourceInterne" minOccurs="0"/>
+			</xs:choice>
+		</xs:sequence>
+	</xs:group>
+	
+<!-- ###
+	   # Type texte structuré
+	   ### -->
+	<xs:complexType name="TypeTexteStructure" mixed="true">
+		<xs:annotation>
+			<xs:documentation>Représente un texte strcuturé (contenant du balisage inline)</xs:documentation>
+		</xs:annotation>
+		<xs:choice minOccurs="0" maxOccurs="unbounded">
+			<xs:group ref="GroupeTexteTerminal" minOccurs="0"/>
+			<xs:group ref="GroupeTexteNonTerminal" minOccurs="0"/>
+		</xs:choice>
+	</xs:complexType>
+	
+
+	
+</xs:schema>

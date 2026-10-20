@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:import namespace="http://purl.org/dc/elements/1.1/" schemaLocation="../librairie/simpledc.xsd"/>
+	<xs:include schemaLocation="../librairie/commun.xsd"/>
+	
+	<xs:element name="PgFAQ">
+		<xs:annotation>
+			<xs:documentation>Schéma permettant de décrire une page FAQ</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:group ref="dc:elementsGroup"/>
+				<xs:element ref="Canal" minOccurs="0" maxOccurs="1"/>
+				<xs:element ref="FilDAriane" minOccurs="0"/>
+				<xs:element ref="Introduction" minOccurs="0"/>
+				<xs:element name="FaqQuestion" minOccurs="1" maxOccurs="unbounded">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="Libelle" type="TypeTitreRiche" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Question</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="Reponse" minOccurs="1" maxOccurs="unbounded">
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element ref="Texte"/>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+				<xs:element ref="Definition" minOccurs="0" maxOccurs="unbounded"/>
+				<xs:element ref="Abreviation" minOccurs="0" maxOccurs="unbounded"/>
+			</xs:sequence>
+			<xs:attribute name="ID" type="xs:string"/>
+			<xs:attribute name="type" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>Valeur constante "FAQ"</xs:documentation>
+				</xs:annotation>
+			</xs:attribute>
+			<xs:attribute name="typeSelf" type="xs:string" use="optional">
+				<xs:annotation>
+					<xs:documentation>Type des services en ligne associés à cette FAQ : [Téléservice, Formulaire, Modèle de document, Simulateur]</xs:documentation>
+				</xs:annotation>
+			</xs:attribute>
+			<xs:attribute name="origineSelf" type="xs:string" use="optional">
+				<xs:annotation>
+					<xs:documentation>Origine des services en ligne associés à cette FAQ : [interne, externe]</xs:documentation>
+				</xs:annotation>
+			</xs:attribute>
+			<xs:attribute name="formulaireContactId" type="xs:string" use="optional">
+				<xs:annotation>
+					<xs:documentation>Identifiant du formulaire de contact associé à cette FAQ</xs:documentation>
+				</xs:annotation>
+			</xs:attribute>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>

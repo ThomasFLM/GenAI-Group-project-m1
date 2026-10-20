@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:import namespace="http://purl.org/dc/elements/1.1/" schemaLocation="../librairie/simpledc.xsd"/>
+	<xs:include schemaLocation="../librairie/commun.xsd"/>
+	
+	<xs:element name="OuSAdresserListe">
+		<xs:annotation>
+			<xs:documentation>Schéma permettant de référencer l'ensemble des "ou s'adresser" de l'audience</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="dc:date"/>
+				<xs:element ref="Audience" minOccurs="1" maxOccurs="1"/>
+				<xs:element ref="OuSAdresser" minOccurs="0"  maxOccurs="unbounded"/>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>

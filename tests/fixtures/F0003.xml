@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Publication xmlns:dc="http://purl.org/dc/elements/1.1/" ID="F0003" type="Fiche d'information" spUrl="https://www.service-public.gouv.fr/particuliers/vosdroits/F0003" dateDerniereModificationImportante="2025-03-01T00:00:00">
+  <dc:title>Passeport : coût</dc:title>
+  <dc:subject>Papiers - Citoyenneté - Élections</dc:subject>
+  <Audience>Particuliers</Audience>
+  <Theme ID="N19810"><Titre>Papiers - Citoyenneté - Élections</Titre></Theme>
+  <Texte>
+    <Chapitre>
+      <Titre><Paragraphe>Prix du timbre fiscal</Paragraphe></Titre>
+      <TitreAlternatif><Paragraphe>Combien ça coûte ?</Paragraphe></TitreAlternatif>
+      <Condition><estVrai var="majeur"/></Condition>
+      <Tableau>
+        <TitreRiche><Paragraphe>Tarif selon l'âge</Paragraphe></TitreRiche>
+        <Colonne largeur="50" type="header"/>
+        <Colonne largeur="50" type="normal"/>
+        <Rangée type="header">
+          <Cellule><Paragraphe>Demandeur</Paragraphe></Cellule>
+          <Cellule><Paragraphe>Prix</Paragraphe></Cellule>
+        </Rangée>
+        <Rangée type="normal">
+          <Cellule><Paragraphe>Majeur</Paragraphe></Cellule>
+          <Cellule><Paragraphe><Valeur>86 €</Valeur></Paragraphe></Cellule>
+        </Rangée>
+        <Rangée type="normal">
+          <Cellule><Paragraphe>Mineur de 15 ans et plus</Paragraphe></Cellule>
+          <Cellule><Paragraphe>42 €</Paragraphe></Cellule>
+        </Rangée>
+      </Tableau>
+      <Liste type="puce">
+        <Item>
+          <Paragraphe>Achat en ligne</Paragraphe>
+          <Liste type="puce">
+            <Item><Paragraphe>sur le site de l'ANTS</Paragraphe></Item>
+          </Liste>
+          <ServiceEnLigne ID="R1" type="Téléservice" URL="https://example.org"><Titre>Acheter un timbre</Titre></ServiceEnLigne>
+        </Item>
+      </Liste>
+      <Exemple><Titre>Exemple</Titre><Paragraphe>Un adulte paie 86 €.</Paragraphe></Exemple>
+    </Chapitre>
+  </Texte>
+</Publication>

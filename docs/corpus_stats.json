@@ -1,0 +1,37 @@
+{
+  "n_documents": 500,
+  "n_chunks": 8297,
+  "themes": [
+    [
+      "Logement",
+      168
+    ],
+    [
+      "Papiers - Citoyenneté - Élections",
+      166
+    ],
+    [
+      "Transports - Mobilité",
+      166
+    ]
+  ],
+  "doc_words": {
+    "mean": 2255,
+    "median": 1388.5,
+    "min": 30,
+    "max": 44883,
+    "total": 1127476
+  },
+  "chunk_words": {
+    "mean": 159,
+    "median": 195,
+    "min": 4,
+    "max": 261
+  },
+  "dates": {
+    "min": "2021-06-22",
+    "max": "2026-10-13",
+    "since_2024": 495
+  },
+  "empty_docs": 0
+}

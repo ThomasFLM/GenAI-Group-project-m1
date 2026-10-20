@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:import namespace="http://purl.org/dc/elements/1.1/" schemaLocation="librairie/simpledc.xsd"/>
+	<xs:include schemaLocation="librairie/commun.xsd"/>
+	<xs:include schemaLocation="librairie/publication.lib.xsd"/>
+	
+<!-- ###
+	   # Elément racine : Publication
+	   ### -->
+	<xs:element name="Publication">
+		<xs:annotation>
+			<xs:documentation>Schéma permettant d'afficher les pages de type Fiche/Noeud</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:group ref="dc:elementsGroup"/>
+				<xs:element name="SurTitre" minOccurs="0" maxOccurs="1" type="xs:string"/>
+				<xs:choice minOccurs="0">
+					<xs:element name="ImageIllustration" type="TypeLienRessourceInterne" minOccurs="0"/>
+					<xs:element name="VideoIllustration" type="TypeLienRessourceExterne" minOccurs="0"/>
+				</xs:choice>
+				<xs:element ref="Audience" minOccurs="0" maxOccurs="unbounded"/>
+				<xs:element ref="Canal" minOccurs="0" maxOccurs="1"/>
+				<xs:element ref="Cible" minOccurs="0" maxOccurs="1"/>
+				<xs:element ref="FilDAriane" minOccurs="0"/>
+				<xs:element ref="FichePrecedente" minOccurs="0" maxOccurs="1"/>
+				<xs:element ref="FicheSuivante" minOccurs="0" maxOccurs="1"/>
+				<xs:element ref="Theme" minOccurs="0"/>
+				<xs:element ref="SousThemePere" minOccurs="0"/>
+				<xs:element ref="DossierPere" minOccurs="0"/>
+				<xs:element ref="RechercheGuideePere" minOccurs="0" maxOccurs="unbounded"/>
+				<xs:element ref="SousTheme" minOccurs="0" maxOccurs="unbounded"/>
+				<xs:element ref="Dossier" minOccurs="0" maxOccurs="unbounded"/>
+				<xs:element ref="SousDossier" minOccurs="0" maxOccurs="unbounded"/>
+				<xs:element ref="Fiche" minOccurs="0" maxOccurs="unbounded"/>
+				<xs:element ref="Avertissement" minOccurs="0" maxOccurs="unbounded"/>
+				<xs:element ref="Introduction" minOccurs="0"/>
+				<xs:element ref="Questionnaire" minOccurs="0"/>
+				<xs:element ref="Problematiques" minOccurs="0"/>
+				<xs:element ref="RechercheGuidee" minOccurs="0" maxOccurs="unbounded"/>
+				<xs:element ref="Groupe" minOccurs="0" maxOccurs="unbounded"/>
+				<xs:element ref="Texte" minOccurs="0"/>
+				<xs:element name="Conclusion" minOccurs="0" type="ConclusionSimple"/>
+				<xs:element ref="ListeSituations" minOccurs="0"/>
+				<xs:element ref="LienExterneCommente" minOccurs="0" maxOccurs="unbounded"/>
+				<xs:element ref="VoirAussi" minOccurs="0" maxOccurs="unbounded"/>
+				<xs:element ref="FicheConnexe" minOccurs="0" maxOccurs="unbounded"/>
+				<xs:element ref="QuiPeutMAider" minOccurs="0" maxOccurs="unbounded"/>
+				<xs:element ref="OuSAdresser" minOccurs="0" maxOccurs="unbounded"/>
+				<xs:element ref="Reference" minOccurs="0" maxOccurs="unbounded"/>
+				<xs:element ref="Partenaire" minOccurs="0" maxOccurs="unbounded"/>
+				<xs:element ref="ServiceEnLigne" minOccurs="0" maxOccurs="unbounded"/>
+				<xs:element ref="PourEnSavoirPlus" minOccurs="0" maxOccurs="unbounded"/>
+				<xs:element ref="Definition" minOccurs="0" maxOccurs="unbounded"/>
+				<xs:element ref="Abreviation" minOccurs="0" maxOccurs="unbounded"/>
+				<xs:element ref="QuestionReponse" minOccurs="0" maxOccurs="unbounded"/>
+				<xs:element ref="CommentFaireSi" minOccurs="0" maxOccurs="unbounded"/>
+				<xs:element ref="FAQ" minOccurs="0"/>
+			</xs:sequence>
+			<xs:attribute name="ID" type="xs:string"/>
+			<!-- @type
+					valeurs possibles : Accueil Comment faire si, Fiche Comment faire si, Fiche Comment faire si conditionné, Dossier, Dossier redirigé, Fiche d'information, Fiche avec liens externes, Fiche redirigée, Fiche Question-réponse, Fiche Question-réponse conditionnée, Sous-dossier, Sous-theme, Theme
+			-->
+			<xs:attribute name="type" type="xs:string"/>
+			<xs:attribute name="pictogramme" type="xs:string" use="optional"/>
+			<!-- @statut de la publication. Liste de valeurs [enCoursDeMiseAJour|miseAJourAVenir] -->
+			<xs:attribute name="statut" type="xs:string" use="optional"/>
+			<!-- @dateDerniereModificationImportante : date de dernière modification importante -->
+			<xs:attribute name="dateDerniereModificationImportante" type="xs:dateTime" use="optional"/>
+			<!-- URL d'accés à l'élément sur le site service-public.gouv.fr -->
+			<xs:attribute name="spUrl" type="xs:string" use="optional"/>
+			<!-- URL d'accés au questionnaire Sphinx -->
+			<xs:attribute name="questionnaireUrl" type="xs:string" use="optional"/>
+			<xs:attribute ref="profilsPro" use="optional"/>
+		</xs:complexType>
+	</xs:element>
+
+</xs:schema>

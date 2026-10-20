@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:import namespace="http://purl.org/dc/elements/1.1/" schemaLocation="../librairie/simpledc.xsd"/>
+	<xs:include schemaLocation="../librairie/commun.xsd"/>
+	<xs:include schemaLocation="../librairie/tech.lib.xsd"/>
+	
+	<xs:element name="PgTech">
+		<xs:annotation>
+			<xs:documentation>Schéma permettant de décrire une page du footer</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:group ref="dc:elementsGroup"/>
+				<xs:element ref="Canal" minOccurs="0"/>
+				<xs:element ref="FilDAriane" minOccurs="0"/>
+				<xs:element name="TitreRiche" type="TypeTitreRiche" minOccurs="0"/>
+				<xs:element ref="IndexTech" minOccurs="0"/>
+				<xs:element ref="IntroductionSimple" minOccurs="0"/>
+				<xs:element ref="Texte" minOccurs="0"/>
+				<xs:choice minOccurs="0" maxOccurs="unbounded">
+					<xs:element name="LienExterne" type="TypeLienExterne" minOccurs="0"/>
+					<xs:element ref="Page"/>
+				</xs:choice>
+				<xs:element ref="Definition" minOccurs="0" maxOccurs="unbounded"/>
+				<xs:element ref="Abreviation" minOccurs="0" maxOccurs="unbounded"/>
+			</xs:sequence>
+			<xs:attribute name="ID" type="xs:string"/>
+			<xs:attribute name="type" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>dossierPage, index, page, pageChap</xs:documentation>
+				</xs:annotation>
+			</xs:attribute>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:import namespace="http://purl.org/dc/elements/1.1/" schemaLocation="../librairie/simpledc.xsd"/>
+	<xs:include schemaLocation="../librairie/commun.xsd"/>
+	<xs:include schemaLocation="../librairie/serviceComplementaire.lib.xsd"/>
+	
+	<xs:element name="ListeValeurs">
+		<xs:annotation>
+			<xs:documentation>Schéma permettant de lister l'ensemble des valeurs du canal</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="dc:date"/>
+				<xs:sequence>
+					<xs:choice minOccurs="0" maxOccurs="unbounded">
+						<xs:element ref="ValeurRfr"/>
+						<xs:element ref="ValeurRfrHisto"/>
+					</xs:choice>
+				</xs:sequence>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>
