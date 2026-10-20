@@ -26,15 +26,17 @@ Soutenance : [docs/soutenance.md](docs/soutenance.md).
 
 ## Modèles utilisés (noms et versions exacts)
 
-| Rôle | Modèle par défaut | Alternative testée |
-|---|---|---|
-| LLM de génération (local) | `qwen2.5:7b-instruct` (Ollama) | `llama3.2:3b` |
-| LLM juge (évaluation) | `qwen2.5:7b-instruct` (Ollama) | — |
-| Embeddings | `intfloat/multilingual-e5-small` | `BAAI/bge-m3` |
-| Reranker | `cross-encoder/mmarco-mMiniLMv2-L12-H384-v1` | `BAAI/bge-reranker-v2-m3` |
-| LLM API (comparaison, optionnel) | `claude-opus-5-5` (Anthropic) | `claude-haiku-5-5` |
+| Rôle | Modèle par défaut (run final) | Version exacte | Alternative testée |
+|---|---|---|---|
+| LLM de génération (local) | `qwen2.5:7b-instruct` (Ollama) | digest `845dbda0ea48` | `qwen2.5:3b-instruct` (`357c53fb659c`, E6) |
+| LLM juge (évaluation) | `qwen2.5:7b-instruct` (Ollama) | digest `845dbda0ea48` | — |
+| Embeddings | `intfloat/multilingual-e5-small` | révision HF `614241f6` | version affinée sur le corpus (E9) |
+| Reranker | `cross-encoder/mmarco-mMiniLMv2-L12-H384-v1` | révision HF `1427fd65` | version affinée sur le corpus (E9) |
+| LLM API (comparaison, optionnel) | `claude-opus-5-5` (Anthropic) | — | non évalué (pas de clé API) |
 
-> Notez ici la version exacte d'Ollama (`ollama --version`) et le digest des modèles (`ollama list`) utilisés pour le run final.
+Run final : Ollama **0.40.4**, PyTorch 2.14.1, sentence-transformers 6.1.0, sur un portable Windows 11
+(16 Go de RAM, NVIDIA RTX 3060 Laptop 6 Go). Tout fonctionne aussi sans GPU, en plus lent
+(`scripts/run_all.ps1 -LowMemory` : environ 8 Go de RAM, `qwen2.5:3b-instruct`).
 
 ## Installation
 
@@ -80,6 +82,24 @@ question ; on vérifie dans la fiche, on remplit `gold_docs` et on retire `gold_
 `build-corpus` (qui force l'inclusion des fiches du golden set) et `index`.
 
 Tests : `uv run pytest` (sans réseau ni GPU : embedder haché et LLM simulé).
+
+### GPU NVIDIA (optionnel)
+
+`uv sync` installe PyTorch CPU. Pour utiliser une carte NVIDIA (embeddings, reranker, affinage ~10× plus rapides) :
+`uv pip install torch==2.14.1 --torch-backend cu130`, puis lancer les commandes avec `UV_NO_SYNC=1`
+(sinon `uv run` réinstalle la version CPU). Ollama utilise le GPU de lui-même.
+
+### Affinage des modèles de recherche (expérience E9, hors configuration par défaut)
+
+```bash
+uv sync --extra train
+uv run python -m rag.cli gen-queries --n-chunks 4000 --workers 4   # questions synthétiques (déjà dans data/train/)
+uv run python -m rag.cli finetune                                   # -> models/e5-small-servicepublic
+uv run python -m rag.cli finetune-reranker                          # -> models/mmarco-reranker-servicepublic
+```
+
+Les questions synthétiques trop proches du golden set sont retirées, et la validation se fait sur des fiches
+tenues à l'écart. Résultats et décision (non retenu par défaut) : [docs/evaluation.md](docs/evaluation.md#e9--affinage-des-modèles-de-recherche).
 
 ## Structure
 
